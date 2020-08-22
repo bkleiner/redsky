@@ -40,6 +40,6 @@ $(TARGET).bin: $(TARGET).hex
 	objcopy -Iihex -Obinary $(TARGET).hex $(TARGET).bin
 
 clean:
-	rm -f $(BUILD_DIR)
+	rm -rf $(BUILD_DIR)
 
 .PHONY: clean 

@@ -1,7 +1,5 @@
 #pragma once
 
-#include <cc2510fx.h>
-
 #include "config.h"
 #include "portmacros.h"
 
