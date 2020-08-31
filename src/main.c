@@ -47,5 +47,6 @@ int main() {
     led_green_toggle();
 
     uart_put('0');
+    uart_flush();
   }
 }

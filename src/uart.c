@@ -11,7 +11,7 @@
 #define UxCSR_MODE_ENABLE 0x80
 #define UxCSR_TX_BYTE (1 << 1)
 
-#define UART_TX_BUF_SIZE 5
+#define UART_TX_BUF_SIZE 128
 
 #define HI(a) (uint8_t)((uint16_t)(a) >> 8)
 #define LO(a) (uint8_t)(((uint16_t)a) & 0xFF)
@@ -60,8 +60,9 @@ typedef struct {
 
 __xdata dma_desc_t dma_desc;
 
+volatile uint8_t dma_transfer_done = 1;
 volatile uint8_t uart_tx_offset = 0;
-static __xdata uint8_t uart_tx_buf[UART_TX_BUF_SIZE] = {'H', 'E', 'L', 'L', 'O'};
+volatile __xdata uint8_t uart_tx_buf[UART_TX_BUF_SIZE];
 
 void uart_init() {
   PERCFG &= ~(PERCFG_U0CFG);
@@ -90,11 +91,11 @@ void uart_init() {
     U0GCR &= ~UxGCR_ORDER;
   }
 
-  SET_WORD(dma_desc.SRCADDRH, dma_desc.SRCADDRL, (&uart_tx_buf[1]));
-  SET_WORD(dma_desc.LENH, dma_desc.LENL, UART_TX_BUF_SIZE - 1);
+  SET_WORD(dma_desc.SRCADDRH, dma_desc.SRCADDRL, uart_tx_buf);
+  SET_WORD(dma_desc.LENH, dma_desc.LENL, UART_TX_BUF_SIZE);
   SET_WORD(dma_desc.DESTADDRH, dma_desc.DESTADDRL, 0xDFC1);
 
-  dma_desc.VLEN = 0x0;     // Use fixed length DMA transfer count
+  dma_desc.VLEN = 0x2;     // Use fixed length DMA transfer count
   dma_desc.WORDSIZE = 0x0; // Perfrom 1-byte DMA transfers
   dma_desc.TMODE = 0x0;    // Single byte transfer per DMA trigger
 
@@ -103,14 +104,13 @@ void uart_init() {
   dma_desc.DESTINC = 0x0; // Do not increment destination pointer: points to USART UxDBUF register.
 
   dma_desc.IRQMASK = 0x1;  // Enable DMA interrupt to the CPU
-  dma_desc.M8 = 0x1;       // Use all 8 bits for transfer count
+  dma_desc.M8 = 0x0;       // Use all 8 bits for transfer count
   dma_desc.PRIORITY = 0x0; // DMA memory access has low priority
 
   SET_WORD(DMA0CFGH, DMA0CFGL, &dma_desc);
 
-  // ARM DMA channel 0
-  DMAARM |= DMA_ARM_CH0;
-  delay_45_nop();
+  DMAIE = 1;
+  DMAIF = 0;
 }
 
 void uart_dma_isr(void) __interrupt(DMA_VECTOR) {
@@ -118,35 +118,43 @@ void uart_dma_isr(void) __interrupt(DMA_VECTOR) {
 
   if (DMAIRQ & DMA_ARM_CH0) {
     DMAIRQ &= ~DMA_ARM_CH0;
+
     uart_tx_offset = 0;
+    uart_tx_buf[0] = 0;
+
+    dma_transfer_done = 1;
   }
 
   led_red_off();
 }
 
 void uart_flush() {
+  while (dma_transfer_done == 0)
+    ;
+
+  dma_transfer_done = 0;
+  uart_tx_buf[0] = uart_tx_offset + 1;
   led_red_on();
-
-  DMAIE = 1;
-  DMAIF = 0;
-
-  SET_WORD(dma_desc.SRCADDRH, dma_desc.SRCADDRL, (&uart_tx_buf[1]));
-  SET_WORD(dma_desc.LENH, dma_desc.LENL, UART_TX_BUF_SIZE - 1);
 
   // ARM DMA channel 0
   DMAARM |= DMA_ARM_CH0;
   delay_45_nop();
 
-  U0DBUF = uart_tx_buf[0];
+  DMAREQ |= DMA_ARM_CH0;
 }
 
 void uart_put(uint8_t c) {
-  while (uart_tx_offset >= UART_TX_BUF_SIZE)
-    delay_us(10);
-  uart_tx_buf[uart_tx_offset++] = c;
-  if (uart_tx_offset >= UART_TX_BUF_SIZE) {
+  while (dma_transfer_done == 0)
+    ;
+
+  if (uart_tx_offset >= (UART_TX_BUF_SIZE - 1)) {
     uart_flush();
+    uart_put(c);
+    return;
   }
+
+  uart_tx_buf[uart_tx_offset + 1] = c;
+  uart_tx_offset++;
 }
 
 void uart_print(const char *str) {
@@ -154,4 +162,5 @@ void uart_print(const char *str) {
     uart_put(*str);
     str++;
   }
+  uart_flush();
 }
