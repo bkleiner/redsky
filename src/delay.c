@@ -45,13 +45,55 @@ void delay_ms(uint16_t ms) {
 // busy wait delay loop
 // this is more or less accurate
 void delay_us(uint16_t us) {
-    #define DELAY_US_LOOP 1
-
     while (us--) {
-        __asm
-            nop
-            nop
-            nop
-        __endasm;
+        __asm__("nop\nnop\nnop");
     }
+}
+
+void delay_45_nop() {
+  __asm__("nop");
+  __asm__("nop");
+  __asm__("nop");
+  __asm__("nop");
+  __asm__("nop");
+  __asm__("nop");
+  __asm__("nop");
+  __asm__("nop");
+  __asm__("nop");
+  __asm__("nop");
+  __asm__("nop");
+  __asm__("nop");
+  __asm__("nop");
+  __asm__("nop");
+  __asm__("nop");
+  __asm__("nop");
+  __asm__("nop");
+  __asm__("nop");
+  __asm__("nop");
+  __asm__("nop");
+  __asm__("nop");
+  __asm__("nop");
+  __asm__("nop");
+  __asm__("nop");
+  __asm__("nop");
+  __asm__("nop");
+  __asm__("nop");
+  __asm__("nop");
+  __asm__("nop");
+  __asm__("nop");
+  __asm__("nop");
+  __asm__("nop");
+  __asm__("nop");
+  __asm__("nop");
+  __asm__("nop");
+  __asm__("nop");
+  __asm__("nop");
+  __asm__("nop");
+  __asm__("nop");
+  __asm__("nop");
+  __asm__("nop");
+  __asm__("nop");
+  __asm__("nop");
+  __asm__("nop");
+  __asm__("nop");
 }

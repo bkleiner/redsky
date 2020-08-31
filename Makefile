@@ -12,17 +12,26 @@ INCLUDE_DIRS := \
 	src/config
 
 HEADERS := $(wildcard src/*.h)
-SOURCES := $(wildcard src/*.c)
+SOURCES := src/main.c \
+					 src/delay.c \
+					 src/led.c \
+					 src/uart.c
 
-CFLAGS  = --model-small \
+DEBUG_FLAGS = --verbose \
+						  --debug      
+
+CFLAGS  = $(DEBUG_FLAGS) \
+					--std-c11 \
+					--model-small \
 					--opt-code-speed \
-					$(addprefix -I ,$(INCLUDE_DIRS))
+					$(addprefix -I ,$(INCLUDE_DIRS)) 
+					
 
 LDFLAGS = --out-fmt-ihx \
 					--code-loc 0x0000 \
 					--code-size $(FLASH_SIZE) \
 					--xram-loc 0xf000 \
-					--xram-size 0x300 \
+					--xram-size 0x7FF \
 					--iram-size 0x100
 
 REL=$(addsuffix .rel,$(addprefix $(BUILD_DIR)/,$(basename $(SOURCES))))
@@ -33,11 +42,14 @@ $(BUILD_DIR)/%.rel: %.c
 	@mkdir -p $(@D)
 	$(CC) $(CFLAGS) -o $@ -c $<
 
-$(TARGET).hex: $(REL) Makefile
-	$(CC) $(LDFLAGS) $(CFLAGS) -o $(TARGET).hex $(REL) 
+$(BUILD_DIR)/src/main.ihx: $(REL)
+	$(CC) $(LDFLAGS) $(CFLAGS) -o $(BUILD_DIR)/src/main.ihx $(REL) 
 
-$(TARGET).bin: $(TARGET).hex
-	objcopy -Iihex -Obinary $(TARGET).hex $(TARGET).bin
+$(TARGET).ihx: $(BUILD_DIR)/src/main.ihx
+	@cp $< $@
+
+$(TARGET).bin: $(TARGET).ihx
+	objcopy -Iihex -Obinary $(TARGET).ihx $(TARGET).bin
 
 clean:
 	rm -rf $(BUILD_DIR)

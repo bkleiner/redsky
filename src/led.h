@@ -1,40 +1,16 @@
-#pragma once
+#ifndef LED_H
+#define LED_H
 
-#include "config.h"
-#include "portmacros.h"
+void led_green_on();
+void led_green_off();
+void led_green_toggle();
+void led_green_init();
 
-#define BOOTLOADER_LED_GREEN_DIR PORT2DIR(BOOTLOADER_LED_GREEN_PORT)
-#define BOOTLOADER_LED_RED_DIR PORT2DIR(BOOTLOADER_LED_RED_PORT)
-#define BOOTLOADER_LED_RED_BIT PORT2BIT(BOOTLOADER_LED_RED_PORT, BOOTLOADER_LED_RED_PIN)
-#define BOOTLOADER_LED_GREEN_BIT PORT2BIT(BOOTLOADER_LED_GREEN_PORT, BOOTLOADER_LED_GREEN_PIN)
+void led_red_on();
+void led_red_off();
+void led_red_toggle();
+void led_red_init();
 
-#define led_green_init()                                         \
-  {                                                              \
-    BOOTLOADER_LED_GREEN_DIR |= (1 << BOOTLOADER_LED_GREEN_PIN); \
-    led_green_off();                                             \
-  }
-#define led_green_on() \
-  { BOOTLOADER_LED_GREEN_BIT = 1; }
-#define led_green_off() \
-  { BOOTLOADER_LED_GREEN_BIT = 0; }
-#define led_green_toggle() \
-  { BOOTLOADER_LED_GREEN_BIT = !BOOTLOADER_LED_GREEN_BIT; }
+void led_init();
 
-#define led_red_init()                                       \
-  {                                                          \
-    BOOTLOADER_LED_RED_DIR |= (1 << BOOTLOADER_LED_RED_PIN); \
-    led_red_off();                                           \
-  }
-#define led_red_on() \
-  { BOOTLOADER_LED_RED_BIT = 1; }
-#define led_red_off() \
-  { BOOTLOADER_LED_RED_BIT = 0; }
-#define led_red_toggle() \
-  { BOOTLOADER_LED_RED_BIT = !BOOTLOADER_LED_RED_BIT; }
-
-// led init routines
-#define led_init()    \
-  {                   \
-    led_red_init();   \
-    led_green_init(); \
-  }
+#endif

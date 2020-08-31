@@ -27,9 +27,11 @@ void enable_inverter() {
   P1_0 = 1;
 }
 
-void main(void) {
+int main() {
   led_init();
   init_clock();
+
+  EA = 1;
 
   led_red_on();
   uart_init();
