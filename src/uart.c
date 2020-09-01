@@ -107,7 +107,7 @@ void uart_init() {
   dma_desc.M8 = 0x0;       // Use all 8 bits for transfer count
   dma_desc.PRIORITY = 0x0; // DMA memory access has low priority
 
-  SET_WORD(DMA0CFGH, DMA0CFGL, &dma_desc);
+  SET_WORD(DMA1CFGH, DMA1CFGL, &dma_desc);
 
   DMAIE = 1;
   DMAIF = 0;
@@ -116,8 +116,8 @@ void uart_init() {
 void uart_dma_isr(void) __interrupt(DMA_VECTOR) {
   DMAIF = 0;
 
-  if (DMAIRQ & DMA_ARM_CH0) {
-    DMAIRQ &= ~DMA_ARM_CH0;
+  if (DMAIRQ & DMA_ARM_CH1) {
+    DMAIRQ &= ~DMA_ARM_CH1;
 
     uart_tx_offset = 0;
     uart_tx_buf[0] = 0;
@@ -137,10 +137,10 @@ void uart_flush() {
   led_red_on();
 
   // ARM DMA channel 0
-  DMAARM |= DMA_ARM_CH0;
+  DMAARM |= DMA_ARM_CH1;
   delay_45_nop();
 
-  DMAREQ |= DMA_ARM_CH0;
+  DMAREQ |= DMA_ARM_CH1;
 }
 
 void uart_put(uint8_t c) {
