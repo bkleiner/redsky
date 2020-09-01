@@ -55,7 +55,7 @@ void timer_init() {
 
 static volatile uint32_t timeout_counter = 0;
 
-void timer_isr(void) __interrupt(T3_VECTOR) {
+void timer3_isr(void) __interrupt(T3_VECTOR) {
   T3IF = 0;
 
   if (timeout_counter != 0) {

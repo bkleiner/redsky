@@ -16,7 +16,9 @@ SOURCES := src/main.c \
 					 src/delay.c \
 					 src/led.c \
 					 src/uart.c \
-					 src/timer.c
+					 src/timer.c \
+					 src/radio.c \
+					 src/dma.c
 
 DEBUG_FLAGS = --verbose \
 						  --debug      
