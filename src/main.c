@@ -4,23 +4,8 @@
 
 #include "delay.h"
 #include "led.h"
+#include "timer.h"
 #include "uart.h"
-
-void init_clock() {
-  led_red_on();
-  led_green_on();
-
-  SLEEP &= ~OSC_PD_BIT;
-  while (!(SLEEP & XOSC_STABLE_BIT))
-    ;
-  CLKCON = 0x80;
-  while (!(SLEEP & XOSC_STABLE_BIT))
-    ;
-  SLEEP |= OSC_PD_BIT;
-
-  led_red_off();
-  led_green_off();
-}
 
 void enable_inverter() {
   P1DIR |= (1 << 0);
@@ -29,7 +14,8 @@ void enable_inverter() {
 
 int main() {
   led_init();
-  init_clock();
+  clock_init();
+  timer_init();
 
   EA = 1;
 
@@ -43,10 +29,12 @@ int main() {
   uart_print("booting...\r\n");
 
   while (1) {
-    delay_ms(500);
-    led_green_toggle();
+    if (timer_timeout()) {
+      led_green_toggle();
 
-    uart_put('0');
-    uart_flush();
+      uart_put('0');
+      uart_flush();
+      timer_timeout_set_ms(100);
+    }
   }
 }

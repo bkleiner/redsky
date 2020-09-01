@@ -15,13 +15,13 @@ HEADERS := $(wildcard src/*.h)
 SOURCES := src/main.c \
 					 src/delay.c \
 					 src/led.c \
-					 src/uart.c
+					 src/uart.c \
+					 src/timer.c
 
 DEBUG_FLAGS = --verbose \
 						  --debug      
 
 CFLAGS  = $(DEBUG_FLAGS) \
-					--std-c11 \
 					--model-small \
 					--opt-code-speed \
 					$(addprefix -I ,$(INCLUDE_DIRS)) 
