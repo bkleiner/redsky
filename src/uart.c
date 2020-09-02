@@ -32,7 +32,6 @@ typedef union {
 } uart_config_t;
 
 volatile uint8_t uart_dma_transfer_done = 1;
-volatile uint8_t uart_tx_offset = 0;
 volatile __xdata uint8_t uart_tx_buf[UART_TX_BUF_SIZE];
 
 void uart_init() {
@@ -83,44 +82,16 @@ void uart_init() {
 
   SET_WORD(DMA1CFGH, DMA1CFGL, &dma_desc[1]);
 
+  uart_tx_buf[0] = 1;
+
   // ARM DMA channel 0
   DMAARM |= DMA_CH1;
   delay_45_nop();
 }
 
 void uart_dma_isr() {
-  uart_tx_offset = 0;
   uart_tx_buf[0] = 1;
-
   uart_dma_transfer_done = 1;
-}
-
-void uart_flush() {
-  while (uart_dma_transfer_done == 0)
-    ;
-
-  uart_dma_transfer_done = 0;
-  uart_tx_buf[0] = uart_tx_offset + 1;
-
-  // ARM DMA channel 0
-  DMAARM |= DMA_CH1;
-  delay_45_nop();
-
-  DMAREQ |= DMA_CH1;
-}
-
-void uart_put(uint8_t c) {
-  while (uart_dma_transfer_done == 0)
-    ;
-
-  if (uart_tx_offset >= (UART_TX_BUF_SIZE - 1)) {
-    uart_flush();
-    uart_put(c);
-    return;
-  }
-
-  uart_tx_buf[uart_tx_offset + 1] = c;
-  uart_tx_offset++;
 }
 
 void uart_update() {
@@ -130,8 +101,17 @@ void uart_update() {
   DMAARM |= DMA_CH1;
 }
 
-void uart_start(uint8_t *data, uint16_t len) {
+void uart_flush() {
   if ((DMAARM & DMA_CH1) == 0 || uart_dma_transfer_done == 0) {
+    return;
+  }
+
+  uart_dma_transfer_done = 0;
+  DMAREQ |= DMA_CH1;
+}
+
+void uart_start(uint8_t *data, uint16_t len) {
+  if (uart_dma_transfer_done == 0) {
     return;
   }
 
@@ -139,11 +119,23 @@ void uart_start(uint8_t *data, uint16_t len) {
     uart_tx_buf[i + 1] = data[i];
   }
 
-  uart_dma_transfer_done = 0;
-  uart_tx_buf[0] = len + 1;
-  uart_tx_offset = len;
+  uart_flush();
+}
 
-  DMAREQ |= DMA_CH1;
+void uart_put(uint8_t c) {
+  if (uart_dma_transfer_done == 0) {
+    return;
+  }
+
+  uart_update();
+
+  uint8_t len = uart_tx_buf[0] + 1;
+  uart_tx_buf[len - 1] = c;
+  uart_tx_buf[0] = len;
+
+  if (len >= UART_TX_BUF_SIZE) {
+    uart_flush();
+  }
 }
 
 void uart_print(const char *str) {
