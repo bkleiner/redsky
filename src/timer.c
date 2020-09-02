@@ -69,6 +69,10 @@ void timer_timeout_set_us(uint32_t us) {
   T3IE = 1;
 }
 
+void timer_timeout_set_100us(uint32_t us100) {
+  timer_timeout_set_us(us100 * 100);
+}
+
 void timer_timeout_set_ms(uint32_t ms) {
   timer_timeout_set_us(ms * 1000);
 }

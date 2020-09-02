@@ -10,6 +10,7 @@ void clock_init();
 void timer_init();
 
 void timer_timeout_set_us(uint32_t us);
+void timer_timeout_set_100us(uint32_t us100);
 void timer_timeout_set_ms(uint32_t ms);
 uint8_t timer_timeout();
 

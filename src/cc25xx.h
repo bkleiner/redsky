@@ -21,10 +21,10 @@
 #define OSC_PD_BIT 0x04
 #define XOSC_STABLE_BIT 0x40
 
-#define DMA_ARM_CH0 (1 << 0)
-#define DMA_ARM_CH1 (1 << 1)
-#define DMA_ARM_CH2 (1 << 2)
-#define DMA_ARM_CH3 (1 << 3)
-#define DMA_ARM_CH4 (1 << 4)
+#define DMA_CH0 (1 << 0)
+#define DMA_CH1 (1 << 1)
+#define DMA_CH2 (1 << 2)
+#define DMA_CH3 (1 << 3)
+#define DMA_CH4 (1 << 4)
 
 #endif

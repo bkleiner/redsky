@@ -7,12 +7,15 @@
 #define BAUD_M_115200 34
 #define BAUD_E_115200 12
 
+#define BAUD_M_230400 34
+#define BAUD_E_230400 13
+
 #define UxGCR_ORDER (1 << 5)
 
 #define UxCSR_MODE_ENABLE 0x80
 #define UxCSR_TX_BYTE (1 << 1)
 
-#define UART_TX_BUF_SIZE 128
+#define UART_TX_BUF_SIZE 16
 
 typedef union {
   uint8_t raw;
@@ -32,13 +35,6 @@ volatile uint8_t uart_dma_transfer_done = 1;
 volatile uint8_t uart_tx_offset = 0;
 volatile __xdata uint8_t uart_tx_buf[UART_TX_BUF_SIZE];
 
-void uart_dma_isr() {
-  uart_tx_offset = 0;
-  uart_tx_buf[0] = 0;
-
-  uart_dma_transfer_done = 1;
-}
-
 void uart_init() {
   PERCFG &= ~(PERCFG_U0CFG);
   P0SEL |= PIN_3;
@@ -46,6 +42,9 @@ void uart_init() {
 
   U0BAUD = BAUD_M_115200;
   U0GCR = (U0GCR & ~0x1F) | (BAUD_E_115200);
+
+  //U0BAUD = BAUD_M_230400;
+  //U0GCR = (U0GCR & ~0x1F) | (BAUD_E_230400);
 
   __xdata uart_config_t config;
 
@@ -83,6 +82,17 @@ void uart_init() {
   dma_desc[1].PRIORITY = 0x0; // DMA memory access has low priority
 
   SET_WORD(DMA1CFGH, DMA1CFGL, &dma_desc[1]);
+
+  // ARM DMA channel 0
+  DMAARM |= DMA_CH1;
+  delay_45_nop();
+}
+
+void uart_dma_isr() {
+  uart_tx_offset = 0;
+  uart_tx_buf[0] = 1;
+
+  uart_dma_transfer_done = 1;
 }
 
 void uart_flush() {
@@ -93,10 +103,10 @@ void uart_flush() {
   uart_tx_buf[0] = uart_tx_offset + 1;
 
   // ARM DMA channel 0
-  DMAARM |= DMA_ARM_CH1;
+  DMAARM |= DMA_CH1;
   delay_45_nop();
 
-  DMAREQ |= DMA_ARM_CH1;
+  DMAREQ |= DMA_CH1;
 }
 
 void uart_put(uint8_t c) {
@@ -111,6 +121,29 @@ void uart_put(uint8_t c) {
 
   uart_tx_buf[uart_tx_offset + 1] = c;
   uart_tx_offset++;
+}
+
+void uart_update() {
+  if ((DMAARM & DMA_CH1) != 0 || uart_dma_transfer_done == 0) {
+    return;
+  }
+  DMAARM |= DMA_CH1;
+}
+
+void uart_start(uint8_t *data, uint16_t len) {
+  if ((DMAARM & DMA_CH1) == 0 || uart_dma_transfer_done == 0) {
+    return;
+  }
+
+  for (uint16_t i = 0; i < len; i++) {
+    uart_tx_buf[i + 1] = data[i];
+  }
+
+  uart_dma_transfer_done = 0;
+  uart_tx_buf[0] = len + 1;
+  uart_tx_offset = len;
+
+  DMAREQ |= DMA_CH1;
 }
 
 void uart_print(const char *str) {

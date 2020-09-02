@@ -18,7 +18,8 @@ SOURCES := src/main.c \
 					 src/uart.c \
 					 src/timer.c \
 					 src/radio.c \
-					 src/dma.c
+					 src/dma.c \
+					 src/redpine.c
 
 DEBUG_FLAGS = --verbose \
 						  --debug      

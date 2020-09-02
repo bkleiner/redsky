@@ -35,13 +35,6 @@ int main() {
 
   uart_print("booting...\r\n");
 
-  while (1) {
-    if (timer_timeout()) {
-      led_green_toggle();
-
-      uart_put('0');
-      uart_flush();
-      timer_timeout_set_ms(100);
-    }
-  }
+  redpine_init();
+  redpine_main();
 }
