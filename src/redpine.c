@@ -50,7 +50,6 @@ __xdata uint8_t fscal3;
 
 void redpine_configure() {
   debug_print("redpine_configure\r\n");
-  debug_flush();
 
   //radio_write_reg(FIFOTHR, 0x07);
 
@@ -155,7 +154,6 @@ void redpine_increment_channel(int8_t cnt) {
 
 void redpine_tune() {
   debug_print("redpine_tune\r\n");
-  debug_flush();
 
   bind.freq_offset = 0;
 
@@ -334,6 +332,7 @@ void redpine_handle_overflows() {
 }
 
 void redpine_bind() {
+  debug_print("redpine_bind\r\n");
   bind.txid[0] = 0x03;
   bind.freq_offset = 0;
 
@@ -342,6 +341,8 @@ void redpine_bind() {
 }
 
 void redpine_init() {
+  debug_print("redpine_init\r\n");
+
   redpine_configure();
 
   if (bind.txid[0] == 0xFF && bind.txid[1] == 0xFF) {
@@ -352,6 +353,8 @@ void redpine_init() {
 }
 
 void redpine_main() {
+  debug_print("redpine_init\r\n");
+
   redpine_enter_rxmode(bind.hop_table[current_channel_index]);
   radio_enable_rx();
   radio_strobe(RFST_SRX);

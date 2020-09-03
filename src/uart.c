@@ -31,13 +31,23 @@ typedef union {
   };
 } uart_config_t;
 
-volatile uint8_t uart_dma_transfer_done = 1;
-volatile __xdata uint8_t uart_tx_buf[UART_TX_BUF_SIZE];
+static volatile __xdata uint8_t uart_dma_transfer_done;
+static volatile __xdata uint8_t uart_dma_armed;
+static volatile __xdata uint8_t uart_tx_buf[UART_TX_BUF_SIZE];
+
+void enable_inverter() {
+  P1_0 = 1;
+}
+
+void disable_inverter() {
+  P1_0 = 0;
+}
 
 void uart_init() {
+
   PERCFG &= ~(PERCFG_U0CFG);
   P0SEL |= PIN_3;
-  P0DIR |= PIN_3;
+  P0SEL |= PIN_2;
 
   U0BAUD = BAUD_M_115200;
   U0GCR = (U0GCR & ~0x1F) | (BAUD_E_115200);
@@ -83,10 +93,16 @@ void uart_init() {
   SET_WORD(DMA1CFGH, DMA1CFGL, &dma_desc[1]);
 
   uart_tx_buf[0] = 1;
+  uart_dma_armed = 1;
+  uart_dma_transfer_done = 1;
 
   // ARM DMA channel 0
   DMAARM |= DMA_CH1;
   delay_45_nop();
+
+  // enable inverter pin
+  P1DIR |= (1 << 0);
+  enable_inverter();
 }
 
 void uart_dma_isr() {
@@ -95,18 +111,20 @@ void uart_dma_isr() {
 }
 
 void uart_update() {
-  if ((DMAARM & DMA_CH1) != 0 || uart_dma_transfer_done == 0) {
+  if (uart_dma_armed == 1 || uart_dma_transfer_done == 0) {
     return;
   }
   DMAARM |= DMA_CH1;
+  uart_dma_armed = 1;
 }
 
 void uart_flush() {
-  if ((DMAARM & DMA_CH1) == 0 || uart_dma_transfer_done == 0) {
+  if (uart_dma_armed == 0 || uart_dma_transfer_done == 0) {
     return;
   }
 
   uart_dma_transfer_done = 0;
+  uart_dma_armed = 0;
   DMAREQ |= DMA_CH1;
 }
 
@@ -118,6 +136,7 @@ void uart_start(uint8_t *data, uint16_t len) {
   for (uint16_t i = 0; i < len; i++) {
     uart_tx_buf[i + 1] = data[i];
   }
+  uart_tx_buf[0] = len + 1;
 
   uart_flush();
 }
@@ -138,10 +157,60 @@ void uart_put(uint8_t c) {
   }
 }
 
-void uart_print(const char *str) {
-  while (*str != 0) {
-    uart_put(*str);
-    str++;
+uint8_t uart_get(uint8_t *val, uint16_t timeout) {
+  if (uart_dma_transfer_done == 0) {
+    return 0;
   }
+
+  disable_inverter();
+
+  U0CSR |= 0x40;
+  URX0IF = 0;
+
+  while (!URX0IF && timeout > 0)
+    timeout--;
+
+  if (timeout == 0) {
+    return 0;
+  }
+
+  *val = U0DBUF;
+  URX0IF = 0;
+  U0CSR |= ~0x40;
+
+  enable_inverter();
+
+  return 1;
+}
+
+uint16_t _strlen(const char *str) {
+  char *ptr = str;
+  while (*ptr != '\0') {
+    ptr++;
+  }
+  return (ptr - str);
+}
+
+void uart_print(const char *str) {
+  while (uart_dma_transfer_done == 0)
+    ;
+
+  uart_start(str, _strlen(str));
+}
+
+#ifdef DEBUG_OUTPUT
+void uart_printf(char *fmt, ...) {
+  while (uart_dma_transfer_done == 0)
+    ;
+
+  va_list va;
+  va_start(va, fmt);
+  static __xdata uint16_t buf_len = UART_TX_BUF_SIZE - 1;
+  uint16_t len = debug_vsnprintf(&uart_tx_buf[1], buf_len, fmt, va);
+  va_end(va);
+
+  uart_tx_buf[0] = len + 1;
+
   uart_flush();
 }
+#endif
