@@ -5,14 +5,6 @@
 
 #include "cc25xx.h"
 
-#define HI(a) (uint8_t)((uint16_t)(a) >> 8)
-#define LO(a) (uint8_t)(((uint16_t)a) & 0xFF)
-#define SET_WORD(H, L, val) \
-  {                         \
-    (H) = HI(val);          \
-    (L) = LO(val);          \
-  }
-
 typedef struct {
   uint8_t SRCADDRH;  // High byte of the source address
   uint8_t SRCADDRL;  // Low byte of the source address

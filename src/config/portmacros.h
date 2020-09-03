@@ -1,4 +1,5 @@
-#pragma once
+#ifndef PORTMACROS_H
+#define PORTMACROS_H
 
 // define some helpers
 #define PORT2DIR_(X) X##DIR
@@ -7,3 +8,5 @@
 #define PORT2BIT(PORTNAME, PIN) PORT2BIT_(PORTNAME, PIN)
 #define PORT2INP_(X) X##INP
 #define PORT2INP(PORTNAME) PORT2INP_(PORTNAME)
+
+#endif

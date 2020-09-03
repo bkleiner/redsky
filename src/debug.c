@@ -12,7 +12,7 @@ uint8_t _putc(char *buf, char *ptr, uint16_t buf_len, char c) {
   return 1;
 }
 
-static uint16_t _itoa(char *buf, char *ptr, uint16_t buf_len, int value, uint8_t radix, uint8_t unsig) {
+static uint16_t _itoa(char *buf, char *ptr, uint16_t buf_len, int32_t value, uint8_t radix, uint8_t unsig) {
   if (radix != 10 && radix != 16)
     return 0;
 
@@ -24,7 +24,7 @@ static uint16_t _itoa(char *buf, char *ptr, uint16_t buf_len, int value, uint8_t
   }
 
   do {
-    int digit = value % radix;
+    uint8_t digit = value % radix;
     char c = (digit < 10 ? '0' + digit : 'a' + digit - 10);
     if (!_putc(buf, ptr, buf_len, c)) {
       return ptr - buf;
@@ -69,12 +69,12 @@ uint16_t debug_vsnprintf(char *buf, uint16_t buf_len, char *fmt, va_list va) {
 
     case 'u':
     case 'd': {
-      ptr += _itoa(buf, ptr, buf_len, va_arg(va, unsigned int), 10, (*ch == 'u'));
+      ptr += _itoa(buf, ptr, buf_len, va_arg(va, uint16_t), 10, (*ch == 'u'));
       break;
     }
 
     case 'x': {
-      ptr += _itoa(buf, ptr, buf_len, va_arg(va, unsigned int), 16, 1);
+      ptr += _itoa(buf, ptr, buf_len, va_arg(va, uint16_t), 16, 1);
       break;
     }
 

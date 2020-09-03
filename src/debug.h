@@ -4,6 +4,7 @@
 #include <stdarg.h>
 #include <stdint.h>
 
+#include "cc25xx.h"
 #include "uart.h"
 
 #ifdef DEBUG_OUTPUT

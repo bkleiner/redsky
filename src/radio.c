@@ -1,5 +1,6 @@
 #include "radio.h"
 
+#include "debug.h"
 #include "dma.h"
 
 #include "redpine.h"
@@ -7,12 +8,12 @@
 #define RADIO_RX_BUF_SIZE REDPINE_PACKET_BUFFER_SIZE
 
 volatile __xdata uint8_t packet[RADIO_RX_BUF_SIZE];
-
 static volatile uint8_t received_packet = 0;
 
 void radio_init() {
-  IP1 |= (1 << 0);
-  IP0 |= (1 << 0);
+  debug_print("radio_init\r\n");
+  //IP1 |= (1 << 0);
+  //IP0 |= (1 << 0);
 
   SET_WORD(dma_desc[0].SRCADDRH, dma_desc[0].SRCADDRL, &X_RFD);
   SET_WORD(dma_desc[0].DESTADDRH, dma_desc[0].DESTADDRL, packet);

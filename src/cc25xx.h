@@ -2,6 +2,7 @@
 #define CC25XX_H
 
 #include "config.h"
+#include "portmacros.h"
 
 #define PIN_0 (1 << 0)
 #define PIN_1 (1 << 1)
@@ -26,5 +27,13 @@
 #define DMA_CH2 (1 << 2)
 #define DMA_CH3 (1 << 3)
 #define DMA_CH4 (1 << 4)
+
+#define HI(a) (uint8_t)((uint16_t)(a) >> 8)
+#define LO(a) (uint8_t)(((uint16_t)a) & 0xFF)
+#define SET_WORD(H, L, val) \
+  {                         \
+    (H) = HI(val);          \
+    (L) = LO(val);          \
+  }
 
 #endif

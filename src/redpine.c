@@ -2,6 +2,7 @@
 
 #include "debug.h"
 #include "delay.h"
+#include "flash.h"
 #include "led.h"
 #include "radio.h"
 #include "timer.h"
@@ -344,16 +345,17 @@ void redpine_init() {
   debug_print("redpine_init\r\n");
 
   redpine_configure();
-
+  flash_read(0x0, (uint8_t *)&bind, sizeof(bind_data));
   if (bind.txid[0] == 0xFF && bind.txid[1] == 0xFF) {
     redpine_bind();
+    //flash_write(0x0, (uint8_t *)&bind, sizeof(bind_data));
   }
 
   redpine_calibrate();
 }
 
 void redpine_main() {
-  debug_print("redpine_init\r\n");
+  debug_print("redpine_main\r\n");
 
   redpine_enter_rxmode(bind.hop_table[current_channel_index]);
   radio_enable_rx();

@@ -5,28 +5,32 @@
 #include "debug.h"
 #include "delay.h"
 #include "dma.h"
+#include "flash.h"
 #include "led.h"
 #include "radio.h"
 #include "timer.h"
 
 int main() {
   led_init();
-  clock_init();
 
-  EA = 1;
+  led_red_on();
+  clock_init();
   timer_init();
   dma_init();
+  led_red_off();
+
+  EA = 1;
 
   led_red_on();
   uart_init();
   led_red_off();
 
   led_red_on();
-  radio_init();
-  led_red_off();
-
-  delay_ms(100);
   debug_print("booting...\r\n");
+  flash_init();
+  //radio_init();
+  debug_print("waht...\r\n");
+  led_red_off();
 
   redpine_init();
   redpine_main();

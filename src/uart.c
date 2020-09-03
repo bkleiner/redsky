@@ -15,7 +15,7 @@
 #define UxCSR_MODE_ENABLE 0x80
 #define UxCSR_TX_BYTE (1 << 1)
 
-#define UART_TX_BUF_SIZE 16
+#define UART_TX_BUF_SIZE 64
 
 typedef union {
   uint8_t raw;
@@ -185,23 +185,28 @@ uint8_t uart_get(uint8_t *val, uint16_t timeout) {
 
 uint16_t _strlen(const char *str) {
   char *ptr = str;
-  while (*ptr != '\0') {
+  while (*ptr) {
     ptr++;
   }
   return (ptr - str);
 }
 
 void uart_print(const char *str) {
-  while (uart_dma_transfer_done == 0)
-    ;
+  while (uart_dma_transfer_done == 0 || uart_dma_armed == 0) {
+    uart_update();
+    delay_45_nop();
+  }
 
   uart_start(str, _strlen(str));
+  delay_ms(10);
 }
 
 #ifdef DEBUG_OUTPUT
 void uart_printf(char *fmt, ...) {
-  while (uart_dma_transfer_done == 0)
-    ;
+  while (uart_dma_transfer_done == 0 || uart_dma_armed == 0) {
+    uart_update();
+    delay_45_nop();
+  }
 
   va_list va;
   va_start(va, fmt);
@@ -212,5 +217,6 @@ void uart_printf(char *fmt, ...) {
   uart_tx_buf[0] = len + 1;
 
   uart_flush();
+  delay_ms(10);
 }
 #endif
