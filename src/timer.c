@@ -11,6 +11,7 @@
 #define CLOCK_TICKSPD_111 (0b00111000)
 
 #define TIMER_DIV_2 (0b001 << 5)
+#define TIMER_DIV_4 (0b010 << 5)
 
 #define TIMER_START (1 << 4)
 #define TIMER_OVFIM (1 << 3)
@@ -47,7 +48,7 @@ void clock_init_fast() {
   while (!(SLEEP & XOSC_STABLE_BIT))
     ;
 
-  CLKCON = (CLKCON & ~(0x80 | 0x40 | 0x7));
+  CLKCON = (CLKCON & ~(0x40 | 0x7));
 
   while (!(SLEEP & XOSC_STABLE_BIT))
     ;
@@ -62,18 +63,19 @@ void timer_init() {
   CLKCON = (CLKCON & ~CLOCK_TICKSPD_111) | CLOCK_TICKSPD_011;
 
   // TICKSPD 011 -> /8 = 3250 kHz timer clock input
-  T3CTL = TIMER_DIV_2 |
+  T3CTL = TIMER_DIV_4 |
           TIMER_START |
           TIMER_OVFIM |
           TIMER_CLR |
           TIMER_MODE_MODULO;
 
   // 3250/2/65 = 25khz = 40us steps
+  // 3250/4/65 = 12.5khz = 80us steps
   T3CC0 = 65 - 1;
   T3IE = 1;
 }
 
-static volatile uint32_t timeout_counter = 0;
+static volatile uint16_t timeout_counter = 0;
 
 void timer3_isr(void) __interrupt(T3_VECTOR) {
   T3IF = 0;
@@ -83,18 +85,14 @@ void timer3_isr(void) __interrupt(T3_VECTOR) {
   }
 }
 
-void timer_timeout_set_us(uint32_t us) {
+void timer_timeout_set_100us(uint32_t us100) {
   T3IE = 0;
-  timeout_counter = us / 40;
+  timeout_counter = (us100 * 100) / 80;
   T3IE = 1;
 }
 
-void timer_timeout_set_100us(uint32_t us100) {
-  timer_timeout_set_us(us100 * 100);
-}
-
 void timer_timeout_set_ms(uint32_t ms) {
-  timer_timeout_set_us(ms * 1000);
+  timer_timeout_set_100us(ms * 10);
 }
 
 uint8_t timer_timeout() {
