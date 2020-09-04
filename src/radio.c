@@ -12,8 +12,8 @@ static volatile uint8_t received_packet = 0;
 
 void radio_init() {
   debug_print("radio_init\r\n");
-  //IP1 |= (1 << 0);
-  //IP0 |= (1 << 0);
+  IP1 |= (1 << 0);
+  IP0 |= (1 << 0);
 
   SET_WORD(dma_desc[0].SRCADDRH, dma_desc[0].SRCADDRL, &X_RFD);
   SET_WORD(dma_desc[0].DESTADDRH, dma_desc[0].DESTADDRL, packet);
@@ -30,8 +30,6 @@ void radio_init() {
   dma_desc[0].IRQMASK = 0x0;
   dma_desc[0].M8 = 0x0;
   dma_desc[0].PRIORITY = 0x02;
-
-  SET_WORD(DMA0CFGH, DMA0CFGL, &dma_desc[0]);
 
   IEN2 |= (1 << 0);
   RFIM = (1 << 4);

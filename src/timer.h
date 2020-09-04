@@ -6,6 +6,7 @@
 #include "cc25xx.h"
 
 void clock_init();
+void clock_init_fast();
 
 void timer_init();
 

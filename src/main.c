@@ -14,7 +14,8 @@ int main() {
   led_init();
 
   led_red_on();
-  clock_init();
+  clock_init_fast();
+  //clock_init();
   timer_init();
   dma_init();
   led_red_off();
@@ -28,8 +29,7 @@ int main() {
   led_red_on();
   debug_print("booting...\r\n");
   flash_init();
-  //radio_init();
-  debug_print("waht...\r\n");
+  radio_init();
   led_red_off();
 
   redpine_init();

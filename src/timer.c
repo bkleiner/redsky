@@ -38,6 +38,26 @@ void clock_init() {
   led_green_off();
 }
 
+void clock_init_fast() {
+  led_red_on();
+  led_green_on();
+
+  SLEEP &= ~OSC_PD_BIT;
+
+  while (!(SLEEP & XOSC_STABLE_BIT))
+    ;
+
+  CLKCON = (CLKCON & ~(0x80 | 0x40 | 0x7));
+
+  while (!(SLEEP & XOSC_STABLE_BIT))
+    ;
+
+  SLEEP |= OSC_PD_BIT;
+
+  led_red_off();
+  led_green_off();
+}
+
 void timer_init() {
   CLKCON = (CLKCON & ~CLOCK_TICKSPD_111) | CLOCK_TICKSPD_011;
 
