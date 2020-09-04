@@ -221,7 +221,7 @@ void redpine_tune() {
         continue;
       }
 
-      debug_put('B');
+      debug_print("B");
       debug_flush();
 
       received_bind_packet = 1;
@@ -233,7 +233,7 @@ void redpine_tune() {
       packet[0] = 0x00;
     }
     if (!done) {
-      debug_put('-');
+      debug_print("-");
       debug_flush();
     }
   }
@@ -257,7 +257,7 @@ void redpine_fetch_txid() {
   while (hopdata_received != HOPDATA_RECEIVE_DONE) {
 
     if (timer_timeout()) {
-      debug_put('m');
+      debug_print("m");
       timer_timeout_set_ms(3 * 9 + 1);
 
       radio_strobe(RFST_SIDLE);
@@ -282,7 +282,7 @@ void redpine_fetch_txid() {
 
     timer_timeout_set_ms(3 * 9 + 1);
 
-    debug_put('B');
+    debug_print("B");
     if ((bind.txid[0] == 0) && (bind.txid[1] == 0)) {
       // no! extract this
       bind.txid[0] = packet[3];
@@ -325,7 +325,7 @@ void redpine_calibrate() {
 void redpine_handle_overflows() {
   uint8_t marc_state = radio_read_reg(MARCSTATE) & 0x1F;
   if (marc_state == 0x11) {
-    debug_print("redpine_rx_overflow\r\n");
+    //debug_print("redpine_rx_overflow\r\n");
     radio_strobe(RFST_SIDLE);
     radio_enable_rx();
     radio_strobe(RFST_SRX);
@@ -345,8 +345,9 @@ void redpine_init() {
   debug_print("redpine_init\r\n");
 
   redpine_configure();
+
   flash_read(0x0, (uint8_t *)&bind, sizeof(bind_data));
-  if (bind.txid[0] == 0xFF && bind.txid[1] == 0xFF) {
+  if (bind.txid[0] == 0x0 && bind.txid[1] == 0x0) {
     redpine_bind();
     //flash_write(0x0, (uint8_t *)&bind, sizeof(bind_data));
   }
@@ -387,9 +388,9 @@ void redpine_main() {
       radio_strobe(RFST_SRX);
 
       if (packet_received) {
-        // debug_put('0');
+        // debug_print("0");
       } else {
-        // debug_put('!');
+        // debug_print("!");
         led_red_on();
         missing++;
       }

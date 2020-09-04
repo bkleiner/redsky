@@ -31,8 +31,9 @@ typedef union {
   };
 } uart_config_t;
 
-static volatile __xdata uint8_t uart_dma_transfer_done;
-static volatile __xdata uint8_t uart_dma_armed;
+static volatile uint8_t uart_dma_transfer_done;
+//static volatile uint8_t uart_dma_armed;
+#define uart_dma_armed (DMAARM & DMA_CH1) != 0
 static volatile __xdata uint8_t uart_tx_buf[UART_TX_BUF_SIZE];
 
 void enable_inverter() {
@@ -88,12 +89,9 @@ void uart_init() {
 
   dma_desc[1].IRQMASK = 0x1;  // Enable DMA interrupt to the CPU
   dma_desc[1].M8 = 0x0;       // Use all 8 bits for transfer count
-  dma_desc[1].PRIORITY = 0x0; // DMA memory access has low priority
-
-  SET_WORD(DMA1CFGH, DMA1CFGL, &dma_desc[1]);
+  dma_desc[1].PRIORITY = 0x1; // DMA memory access has low priority
 
   uart_tx_buf[0] = 1;
-  uart_dma_armed = 1;
   uart_dma_transfer_done = 1;
 
   // ARM DMA channel 0
@@ -115,7 +113,6 @@ void uart_update() {
     return;
   }
   DMAARM |= DMA_CH1;
-  uart_dma_armed = 1;
 }
 
 void uart_flush() {
@@ -124,7 +121,7 @@ void uart_flush() {
   }
 
   uart_dma_transfer_done = 0;
-  uart_dma_armed = 0;
+
   DMAREQ |= DMA_CH1;
 }
 
@@ -139,22 +136,6 @@ void uart_start(uint8_t *data, uint16_t len) {
   uart_tx_buf[0] = len + 1;
 
   uart_flush();
-}
-
-void uart_put(uint8_t c) {
-  if (uart_dma_transfer_done == 0) {
-    return;
-  }
-
-  uart_update();
-
-  uint8_t len = uart_tx_buf[0] + 1;
-  uart_tx_buf[len - 1] = c;
-  uart_tx_buf[0] = len;
-
-  if (len >= UART_TX_BUF_SIZE) {
-    uart_flush();
-  }
 }
 
 uint8_t uart_get(uint8_t *val, uint16_t timeout) {

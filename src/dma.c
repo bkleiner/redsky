@@ -6,6 +6,9 @@
 __xdata dma_desc_t dma_desc[5];
 
 void dma_init() {
+  SET_WORD(DMA0CFGH, DMA0CFGL, &dma_desc[0]);
+  SET_WORD(DMA1CFGH, DMA1CFGL, &dma_desc[1]);
+
   DMAIE = 1;
   DMAIF = 0;
 }

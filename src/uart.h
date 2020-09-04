@@ -8,7 +8,6 @@
 
 void uart_init();
 
-void uart_put(uint8_t c);
 void uart_print(const char *str);
 void uart_printf(char *fmt, ...);
 void uart_start(uint8_t *data, uint16_t len);
