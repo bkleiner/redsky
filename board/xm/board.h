@@ -3,7 +3,7 @@
 
 #include <cc2510fx.h>
 
-#define FLASH_PAGE_SIZE 0x400
+#define FLASH_PAGE_SIZE 1024
 #define FLASH_PAGE_OFFSET 0x400
 
 #define LED_GREEN_PORT P1

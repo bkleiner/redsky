@@ -349,7 +349,7 @@ void redpine_init() {
   flash_read(0x0, (uint8_t *)&bind, sizeof(bind_data));
   if (bind.txid[0] == 0x0 && bind.txid[1] == 0x0) {
     redpine_bind();
-    //flash_write(0x0, (uint8_t *)&bind, sizeof(bind_data));
+    flash_write(0x0, (uint8_t *)&bind, sizeof(bind_data));
   }
 
   redpine_calibrate();
