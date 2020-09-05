@@ -11,15 +11,17 @@
 #define MAX_HOPTABLE_SIZE 50
 #define MAX_BIND_PACKET_COUNT 10
 
-#define DEFAULT_PACKET_TIME_US 50000
+#define DEFAULT_PACKET_TIME_US 5000
 
 #define CHANNEL_START 3
 
 #define HOPDATA_RECEIVE_DONE ((1 << (MAX_BIND_PACKET_COUNT)) - 1)
 
-#define REDPINE_VALID_TXID(_b) ((_b[1] == bind.txid[0]) && (_b[2] == bind.txid[1]))
+#define REDPINE_VALID_PACKET_CRC(_b) (_b[REDPINE_PACKET_SIZE_W_ADDONS - 1] & (1 << 7))
 #define REDPINE_VALID_PACKET_BIND(_b) ((_b[2] == 0x01))
-#define REDPINE_VALID_PACKET(_b) (REDPINE_VALID_TXID(_b))
+
+#define REDPINE_VALID_TXID(_b) ((_b[1] == bind.txid[0]) && (_b[2] == bind.txid[1]))
+#define REDPINE_VALID_PACKET(_b) (REDPINE_VALID_TXID(_b) && REDPINE_VALID_PACKET_CRC(_b))
 
 typedef struct {
   uint8_t txid[2];
@@ -324,7 +326,6 @@ void redpine_handle_overflows() {
   uint8_t marc_state = radio_read_reg(MARCSTATE) & 0x1F;
   if (marc_state == 0x11) {
     radio_strobe(RFST_SIDLE);
-    radio_reset_packet();
     radio_enable_rx();
     radio_strobe(RFST_SRX);
   }
@@ -351,6 +352,7 @@ void redpine_init() {
   }
 
   redpine_calibrate();
+  delay_ms(100);
 }
 
 inline void redpine_send_update() {
@@ -385,8 +387,8 @@ void redpine_main() {
   uint8_t conn_lost = 1;
   uint8_t missing = 0;
   uint8_t packet_received = 0;
-  int32_t looptime = DEFAULT_PACKET_TIME_US;
 
+  uint16_t looptime = DEFAULT_PACKET_TIME_US;
   while (1) {
     if (timer_timeout()) {
       if (conn_lost) {

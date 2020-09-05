@@ -32,6 +32,8 @@ int main() {
   radio_init();
   led_red_off();
 
+  delay_ms(500);
+
   redpine_init();
   redpine_main();
 }
