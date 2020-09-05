@@ -353,6 +353,26 @@ void redpine_init() {
   redpine_calibrate();
 }
 
+inline void redpine_send_update() {
+  // seed crc
+  RNDL = 0xFF;
+  RNDL = 0xFF;
+
+  // move rssi up
+  packet[CHANNEL_START + 7] = packet[REDPINE_PACKET_SIZE];
+
+  for (uint8_t i = 3; i < REDPINE_PACKET_SIZE; i++) {
+    RNDH = packet[i];
+  }
+
+  // set crc
+  packet[1] = RNDH;
+  packet[2] = RNDL;
+
+  // drop size, lqi & rssi from packet
+  uart_start(packet + 1, REDPINE_PACKET_SIZE - 1);
+}
+
 void redpine_main() {
   debug_print("redpine_main\r\n");
 
@@ -371,7 +391,7 @@ void redpine_main() {
     if (timer_timeout()) {
       if (conn_lost) {
         // connection lost, do a full sync
-        timer_timeout_set_100us(5000);
+        timer_timeout_set_100us(DEFAULT_PACKET_TIME_US);
       } else if (packet_received) {
         //Add 1/8 looptime jitter for packets
         timer_timeout_set_100us(looptime + looptime / 8);
@@ -413,11 +433,7 @@ void redpine_main() {
     led_green_on();
 
     looptime = packet[CHANNEL_START + 7];
-
-    packet[1] = 0x13;
-    packet[2] = 0x37;
-    uart_start(packet + 1, REDPINE_PACKET_SIZE_W_ADDONS - 1);
-
+    redpine_send_update();
     timer_timeout_set_100us(0);
 
     missing = 0;
