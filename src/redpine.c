@@ -222,7 +222,6 @@ void redpine_tune() {
       }
 
       debug_print("B");
-      debug_flush();
 
       received_bind_packet = 1;
       done = 1;
@@ -234,7 +233,6 @@ void redpine_tune() {
     }
     if (!done) {
       debug_print("-");
-      debug_flush();
     }
   }
 
@@ -325,7 +323,6 @@ void redpine_calibrate() {
 void redpine_handle_overflows() {
   uint8_t marc_state = radio_read_reg(MARCSTATE) & 0x1F;
   if (marc_state == 0x11) {
-    //debug_print("redpine_rx_overflow\r\n");
     radio_strobe(RFST_SIDLE);
     radio_reset_packet();
     radio_enable_rx();
@@ -396,10 +393,9 @@ void redpine_main() {
         conn_lost = 1;
       }
       packet_received = 0;
-      redpine_handle_overflows();
     }
 
-    uart_update();
+    redpine_handle_overflows();
 
     if (!radio_received_packet()) {
       packet_received = 0;

@@ -49,11 +49,11 @@ void uart_init() {
   P0SEL |= PIN_3;
   P0SEL |= PIN_2;
 
-  U0BAUD = BAUD_M_115200;
-  U0GCR = (U0GCR & ~0x1F) | (BAUD_E_115200);
+  //U0BAUD = BAUD_M_115200;
+  //U0GCR = (U0GCR & ~0x1F) | (BAUD_E_115200);
 
-  //U0BAUD = BAUD_M_230400;
-  //U0GCR = (U0GCR & ~0x1F) | (BAUD_E_230400);
+  U0BAUD = BAUD_M_230400;
+  U0GCR = (U0GCR & ~0x1F) | (BAUD_E_230400);
 
   __xdata uart_config_t config;
 
@@ -103,33 +103,32 @@ void uart_init() {
 }
 
 void uart_dma_isr() {
-  while (!UTX0IF)
-    ;
-  UTX0IF = 0;
   uart_dma_transfer_done = 1;
 }
 
-void uart_update() {
-  if (uart_dma_armed == 1 || uart_dma_transfer_done == 0) {
-    return;
+inline uint8_t uart_update() {
+  if (uart_dma_transfer_done == 0) {
+    return 0;
   }
+  if (uart_dma_armed == 1) {
+    return 1;
+  }
+
   DMAARM |= DMA_CH1;
   delay_45_nop();
+  return 1;
 }
 
-void uart_flush() {
-  if (uart_dma_armed == 0 || uart_dma_transfer_done == 0) {
-    return;
-  }
-
+inline uint8_t uart_flush() {
   uart_dma_transfer_done = 0;
-  UTX0IF = 0;
+  DMAIRQ &= ~DMA_CH1;
   DMAREQ |= DMA_CH1;
+  return 1;
 }
 
-void uart_start(uint8_t *data, uint16_t len) {
-  if (uart_dma_armed == 0 || uart_dma_transfer_done == 0) {
-    return;
+uint8_t uart_start(uint8_t *data, uint16_t len) {
+  if (uart_update() == 0) {
+    return 0;
   }
 
   for (uint16_t i = 0; i < len; i++) {
@@ -137,7 +136,7 @@ void uart_start(uint8_t *data, uint16_t len) {
   }
   uart_tx_buf[0] = len + 1;
 
-  uart_flush();
+  return uart_flush();
 }
 
 uint8_t uart_get(uint8_t *val, uint16_t timeout) {
@@ -175,20 +174,16 @@ uint16_t _strlen(const char *str) {
 }
 
 void uart_print(const char *str) {
-  while (uart_dma_armed == 0 || uart_dma_transfer_done == 0) {
-    uart_update();
-    delay_45_nop();
-  }
+  while (uart_update() == 0)
+    ;
 
   uart_start(str, _strlen(str));
 }
 
 #ifdef DEBUG_OUTPUT
 void uart_printf(char *fmt, ...) {
-  while (uart_dma_armed == 0 || uart_dma_transfer_done == 0) {
-    uart_update();
-    delay_45_nop();
-  }
+  while (uart_update() == 0)
+    ;
 
   va_list va;
   va_start(va, fmt);
