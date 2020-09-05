@@ -32,8 +32,7 @@ typedef union {
 } uart_config_t;
 
 static volatile uint8_t uart_dma_transfer_done;
-//static volatile uint8_t uart_dma_armed;
-#define uart_dma_armed (DMAARM & DMA_CH1) != 0
+#define uart_dma_armed ((DMAARM & DMA_CH1) != 0)
 static volatile __xdata uint8_t uart_tx_buf[UART_TX_BUF_SIZE];
 
 void enable_inverter() {
@@ -104,7 +103,9 @@ void uart_init() {
 }
 
 void uart_dma_isr() {
-  uart_tx_buf[0] = 1;
+  while (!UTX0IF)
+    ;
+  UTX0IF = 0;
   uart_dma_transfer_done = 1;
 }
 
@@ -113,6 +114,7 @@ void uart_update() {
     return;
   }
   DMAARM |= DMA_CH1;
+  delay_45_nop();
 }
 
 void uart_flush() {
@@ -121,12 +123,12 @@ void uart_flush() {
   }
 
   uart_dma_transfer_done = 0;
-
+  UTX0IF = 0;
   DMAREQ |= DMA_CH1;
 }
 
 void uart_start(uint8_t *data, uint16_t len) {
-  if (uart_dma_transfer_done == 0) {
+  if (uart_dma_armed == 0 || uart_dma_transfer_done == 0) {
     return;
   }
 
@@ -173,18 +175,17 @@ uint16_t _strlen(const char *str) {
 }
 
 void uart_print(const char *str) {
-  while (uart_dma_transfer_done == 0 || uart_dma_armed == 0) {
+  while (uart_dma_armed == 0 || uart_dma_transfer_done == 0) {
     uart_update();
     delay_45_nop();
   }
 
   uart_start(str, _strlen(str));
-  delay_ms(10);
 }
 
 #ifdef DEBUG_OUTPUT
 void uart_printf(char *fmt, ...) {
-  while (uart_dma_transfer_done == 0 || uart_dma_armed == 0) {
+  while (uart_dma_armed == 0 || uart_dma_transfer_done == 0) {
     uart_update();
     delay_45_nop();
   }
@@ -198,6 +199,5 @@ void uart_printf(char *fmt, ...) {
   uart_tx_buf[0] = len + 1;
 
   uart_flush();
-  delay_ms(10);
 }
 #endif

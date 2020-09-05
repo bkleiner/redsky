@@ -17,13 +17,11 @@ void dma_isr(void) __interrupt(DMA_VECTOR) {
   DMAIF = 0;
 
   if (DMAIRQ & DMA_CH0) {
-    DMAIRQ &= ~DMA_CH0;
-
     radio_dma_isr();
+    DMAIRQ &= ~DMA_CH0;
   }
   if (DMAIRQ & DMA_CH1) {
-    DMAIRQ &= ~DMA_CH1;
-
     uart_dma_isr();
+    DMAIRQ &= ~DMA_CH1;
   }
 }

@@ -327,6 +327,7 @@ void redpine_handle_overflows() {
   if (marc_state == 0x11) {
     //debug_print("redpine_rx_overflow\r\n");
     radio_strobe(RFST_SIDLE);
+    radio_reset_packet();
     radio_enable_rx();
     radio_strobe(RFST_SRX);
   }
@@ -370,16 +371,16 @@ void redpine_main() {
   int32_t looptime = DEFAULT_PACKET_TIME_US;
 
   while (1) {
-
     if (timer_timeout()) {
-      if (!conn_lost) {
-        if (packet_received) {
-          timer_timeout_set_100us(looptime + looptime / 8); //Add 1/8 looptime jitter for packets
-        } else {
-          timer_timeout_set_100us(looptime); //If you missed the last packet don't add the jitter
-        }
-      } else {
+      if (conn_lost) {
+        // connection lost, do a full sync
         timer_timeout_set_100us(5000);
+      } else if (packet_received) {
+        //Add 1/8 looptime jitter for packets
+        timer_timeout_set_100us(looptime + looptime / 8);
+      } else {
+        //If you missed the last packet don't add the jitter
+        timer_timeout_set_100us(looptime);
       }
 
       redpine_increment_channel(1);
@@ -387,17 +388,17 @@ void redpine_main() {
       radio_enable_rx();
       radio_strobe(RFST_SRX);
 
-      if (packet_received) {
-        // debug_print("0");
-      } else {
-        // debug_print("!");
+      if (!packet_received) {
         led_red_on();
         missing++;
       }
+      if (missing >= 50) {
+        conn_lost = 1;
+      }
       packet_received = 0;
+      redpine_handle_overflows();
     }
 
-    redpine_handle_overflows();
     uart_update();
 
     if (!radio_received_packet()) {
@@ -409,17 +410,19 @@ void redpine_main() {
     radio_reset_packet();
 
     if (!REDPINE_VALID_PACKET(packet)) {
+      packet_received = 0;
       continue;
     }
 
     led_green_on();
 
     looptime = packet[CHANNEL_START + 7];
-    timer_timeout_set_100us(0);
 
     packet[1] = 0x13;
     packet[2] = 0x37;
-    uart_start(packet, REDPINE_PACKET_SIZE_W_ADDONS);
+    uart_start(packet + 1, REDPINE_PACKET_SIZE_W_ADDONS - 1);
+
+    timer_timeout_set_100us(0);
 
     missing = 0;
     packet_received = 1;
