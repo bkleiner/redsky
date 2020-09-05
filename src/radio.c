@@ -48,9 +48,6 @@ void radio_enable_rx() {
     DMAARM |= DMA_CH0;
 }
 
-void radio_dma_isr() {
-}
-
 void radio_isr(void) __interrupt(RF_VECTOR) {
   RFIF &= ~(1 << 4);
   S1CON &= ~0x03;
