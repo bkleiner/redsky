@@ -36,6 +36,10 @@ void flash_start_erase() {
 void flash_write(uint16_t offset, uint8_t *buf, uint16_t len) __critical {
   EA = 0;
 
+  if (len & 0x1 == 1) {
+    len++;
+  }
+
   SET_WORD(dma_desc[2].SRCADDRH, dma_desc[2].SRCADDRL, buf);
   SET_WORD(dma_desc[2].LENH, dma_desc[2].LENL, len);
   SET_WORD(dma_desc[2].DESTADDRH, dma_desc[2].DESTADDRL, 0xDFAF);
