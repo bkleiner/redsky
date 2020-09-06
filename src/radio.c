@@ -95,7 +95,11 @@ void radio_reset_packet() {
 }
 
 void radio_switch_antenna() {
+#ifdef USE_FIXED_ANTENNA
+  set_antenna(USE_FIXED_ANTENNA);
+#else
   set_antenna(current_antenna == 0 ? 1 : 0);
+#endif
 }
 
 void radio_enable_rx() {
