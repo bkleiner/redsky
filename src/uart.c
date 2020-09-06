@@ -32,7 +32,7 @@ typedef union {
 } uart_config_t;
 
 static volatile uint8_t uart_dma_transfer_done;
-#define uart_dma_armed ((DMAARM & DMA_CH1) != 0)
+#define uart_dma_armed ((DMAARM & DMA_CH1) != 0 ? 1 : 0)
 static volatile __xdata uint8_t uart_tx_buf[UART_TX_BUF_SIZE];
 
 void enable_inverter() {
