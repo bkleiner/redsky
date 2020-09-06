@@ -8,14 +8,14 @@
 #include "flash.h"
 #include "led.h"
 #include "radio.h"
+#include "redpine.h"
 #include "timer.h"
 
-int main() {
+void main() {
   led_init();
 
   led_red_on();
   clock_init_fast();
-  //clock_init();
   timer_init();
   dma_init();
   led_red_off();
@@ -26,13 +26,15 @@ int main() {
   uart_init();
   led_red_off();
 
-  led_red_on();
   debug_print("booting...\r\n");
+  delay_ms(250);
+
+  led_red_on();
   flash_init();
   radio_init();
   led_red_off();
 
-  delay_ms(500);
+  delay_ms(250);
 
   redpine_init();
   redpine_main();

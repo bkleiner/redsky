@@ -16,6 +16,7 @@ __code __at(FLASH_PAGE_OFFSET) uint8_t flash_storage_page[FLASH_PAGE_SIZE] = {0x
 
 void flash_init() {
   debug_print("flash_init\r\n");
+  delay_ms(100);
 }
 
 void flash_read(uint16_t addr, uint8_t *buf, uint16_t len) {
