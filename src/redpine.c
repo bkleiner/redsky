@@ -11,7 +11,7 @@
 #define MAX_HOPTABLE_SIZE 50
 #define MAX_BIND_PACKET_COUNT 10
 
-#define DEFAULT_PACKET_TIME_US 5000
+#define DEFAULT_PACKET_TIME_US 50000
 
 #define CHANNEL_START 3
 
@@ -21,7 +21,7 @@
 #define REDPINE_VALID_PACKET_BIND(_b) ((_b[2] == 0x01))
 
 #define REDPINE_VALID_TXID(_b) ((_b[1] == bind.txid[0]) && (_b[2] == bind.txid[1]))
-#define REDPINE_VALID_PACKET(_b) (REDPINE_VALID_TXID(_b) && REDPINE_VALID_PACKET_CRC(_b))
+#define REDPINE_VALID_PACKET(_b) ((_b[0] == 10) && REDPINE_VALID_TXID(_b) && REDPINE_VALID_PACKET_CRC(_b))
 
 typedef struct {
   uint8_t txid[2];
@@ -155,6 +155,19 @@ void redpine_increment_channel(int8_t cnt) {
   redpine_set_channel(current_channel_index);
 }
 
+void redpine_handle_overflows() {
+  uint8_t marc_state = radio_read_reg(MARCSTATE) & 0x1F;
+  if (marc_state == 0x11) {
+    radio_strobe(RFST_SIDLE);
+    while (radio_read_reg(MARCSTATE) != 0x01)
+      ;
+
+    radio_reset_packet();
+    radio_enable_rx();
+    radio_strobe(RFST_SRX);
+  }
+}
+
 void redpine_tune() {
   debug_print("redpine_tune\r\n");
 
@@ -215,6 +228,7 @@ void redpine_tune() {
         continue;
       }
 
+      redpine_handle_overflows();
       radio_reset_packet();
       radio_enable_rx();
       radio_strobe(RFST_SRX);
@@ -272,6 +286,7 @@ void redpine_fetch_txid() {
       continue;
     }
 
+    redpine_handle_overflows();
     radio_reset_packet();
     radio_enable_rx();
     radio_strobe(RFST_SRX);
@@ -322,15 +337,6 @@ void redpine_calibrate() {
   radio_strobe(RFST_SIDLE);
 }
 
-void redpine_handle_overflows() {
-  uint8_t marc_state = radio_read_reg(MARCSTATE) & 0x1F;
-  if (marc_state == 0x11) {
-    radio_strobe(RFST_SIDLE);
-    radio_enable_rx();
-    radio_strobe(RFST_SRX);
-  }
-}
-
 void redpine_bind() {
   debug_print("redpine_bind\r\n");
   bind.txid[0] = 0x03;
@@ -379,8 +385,6 @@ void redpine_main() {
   debug_print("redpine_main\r\n");
 
   redpine_enter_rxmode(bind.hop_table[current_channel_index]);
-  radio_enable_rx();
-  radio_strobe(RFST_SRX);
 
   timer_timeout_set_ms(500);
 
@@ -413,6 +417,12 @@ void redpine_main() {
       }
       if (missing >= 50) {
         conn_lost = 1;
+      }
+      if (missing >= 250) {
+        radio_strobe(RFST_SIDLE);
+        timer_timeout_set_100us(0);
+        missing = 50;
+        continue;
       }
       packet_received = 0;
     }
