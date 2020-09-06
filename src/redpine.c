@@ -18,7 +18,7 @@
 #define HOPDATA_RECEIVE_DONE ((1 << (MAX_BIND_PACKET_COUNT)) - 1)
 
 #define REDPINE_VALID_PACKET_CRC(_b) (_b[REDPINE_PACKET_SIZE_W_ADDONS - 1] & (1 << 7))
-#define REDPINE_VALID_PACKET_BIND(_b) ((_b[2] == 0x01))
+#define REDPINE_VALID_PACKET_BIND(_b) ((_b[2] == 0x01) && REDPINE_VALID_PACKET_CRC(_b))
 
 #define REDPINE_VALID_TXID(_b) ((_b[1] == bind.txid[0]) && (_b[2] == bind.txid[1]))
 #define REDPINE_VALID_PACKET(_b) ((_b[0] == 10) && REDPINE_VALID_TXID(_b) && REDPINE_VALID_PACKET_CRC(_b))
