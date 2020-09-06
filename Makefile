@@ -1,9 +1,9 @@
 CC = sdcc
 
 BUILD_DIR := build
-TARGET    := $(BUILD_DIR)/blinky
+TARGET    ?= xm
 
-include board/xm/board.mk
+include board/$(TARGET)/board.mk
 
 INCLUDE_DIRS := \
 	/usr/share/sdcc/include \
@@ -41,7 +41,7 @@ LDFLAGS = --out-fmt-ihx \
 
 REL=$(addsuffix .rel,$(addprefix $(BUILD_DIR)/,$(basename $(SOURCES))))
 
-all: $(TARGET).bin
+all: $(BUILD_DIR)/src/main.bin
 
 $(BUILD_DIR)/%.rel: %.c
 	@mkdir -p $(@D)
@@ -50,11 +50,8 @@ $(BUILD_DIR)/%.rel: %.c
 $(BUILD_DIR)/src/main.ihx: $(REL)
 	$(CC) $(LDFLAGS) $(CFLAGS) -o $(BUILD_DIR)/src/main.ihx $(REL) 
 
-$(TARGET).ihx: $(BUILD_DIR)/src/main.ihx
-	@cp $< $@
-
-$(TARGET).bin: $(TARGET).ihx
-	objcopy -Iihex -Obinary $(TARGET).ihx $(TARGET).bin
+$(BUILD_DIR)/src/main.bin: $(BUILD_DIR)/src/main.ihx
+	objcopy -Iihex -Obinary $< $@
 
 clean:
 	rm -rf $(BUILD_DIR)

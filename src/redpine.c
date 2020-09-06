@@ -225,6 +225,7 @@ void redpine_tune() {
 
     while (!timer_timeout() && !done) {
       if (!radio_received_packet()) {
+        radio_switch_antenna();
         continue;
       }
 
@@ -283,6 +284,7 @@ void redpine_fetch_txid() {
     }
 
     if (!radio_received_packet()) {
+      radio_switch_antenna();
       continue;
     }
 
@@ -412,8 +414,11 @@ void redpine_main() {
       radio_strobe(RFST_SRX);
 
       if (!packet_received) {
-        led_red_on();
         missing++;
+        led_red_on();
+      }
+      if (missing >= 5 && (missing % 5) == 0) {
+        radio_switch_antenna();
       }
       if (missing >= 50) {
         conn_lost = 1;

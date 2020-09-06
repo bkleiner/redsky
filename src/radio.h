@@ -26,6 +26,8 @@ void radio_enable_rx();
 uint8_t radio_received_packet();
 void radio_reset_packet();
 
+void radio_switch_antenna();
+
 void radio_isr(void) __interrupt(RF_VECTOR);
 
 #endif
