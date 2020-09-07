@@ -1,6 +1,6 @@
 #include "dma.h"
 
-#include "uart.h"
+#include "uart_dma.h"
 
 __xdata dma_desc_t dma_desc[5];
 

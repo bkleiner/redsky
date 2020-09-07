@@ -1,8 +1,6 @@
 #include "flash.h"
 
-#include "debug.h"
 #include "delay.h"
-#include "dma.h"
 
 #define FLASH_MAGIC 0xdead
 #define FLASH_MAGIC_ADDR 0
@@ -12,11 +10,11 @@
 #define FCTL_WRITE (1 << 1)
 #define FCTL_ERASE (1 << 0)
 
+static __xdata dma_desc_t flash_dma_desc;
+
 __code __at(FLASH_PAGE_OFFSET) uint8_t flash_storage_page[FLASH_PAGE_SIZE] = {0x0};
 
 void flash_init() {
-  debug_print("flash_init\r\n");
-  delay_ms(100);
 }
 
 void flash_read(uint16_t addr, uint8_t *buf, uint16_t len) {
@@ -34,29 +32,27 @@ void flash_start_erase() {
 }
 
 void flash_write(uint16_t offset, uint8_t *buf, uint16_t len) __critical {
-  EA = 0;
-
   if (len & 0x1 == 1) {
     len++;
   }
 
-  SET_WORD(dma_desc[2].SRCADDRH, dma_desc[2].SRCADDRL, buf);
-  SET_WORD(dma_desc[2].LENH, dma_desc[2].LENL, len);
-  SET_WORD(dma_desc[2].DESTADDRH, dma_desc[2].DESTADDRL, 0xDFAF);
+  SET_WORD(flash_dma_desc.SRCADDRH, flash_dma_desc.SRCADDRL, buf);
+  SET_WORD(flash_dma_desc.LENH, flash_dma_desc.LENL, len);
+  SET_WORD(flash_dma_desc.DESTADDRH, flash_dma_desc.DESTADDRL, 0xDFAF);
 
-  dma_desc[2].VLEN = 0x0;
-  dma_desc[2].WORDSIZE = 0x0;
-  dma_desc[2].TMODE = 0x0;
+  flash_dma_desc.VLEN = 0x0;
+  flash_dma_desc.WORDSIZE = 0x0;
+  flash_dma_desc.TMODE = 0x0;
 
-  dma_desc[2].TRIG = 18;
-  dma_desc[2].SRCINC = 0x1;
-  dma_desc[2].DESTINC = 0x0;
+  flash_dma_desc.TRIG = 18;
+  flash_dma_desc.SRCINC = 0x1;
+  flash_dma_desc.DESTINC = 0x0;
 
-  dma_desc[2].IRQMASK = 0x0;
-  dma_desc[2].M8 = 0x0;
-  dma_desc[2].PRIORITY = 0x2;
+  flash_dma_desc.IRQMASK = 0x0;
+  flash_dma_desc.M8 = 0x0;
+  flash_dma_desc.PRIORITY = 0x2;
 
-  SET_WORD(DMA1CFGH, DMA1CFGL, &dma_desc[1]);
+  SET_WORD(DMA0CFGH, DMA0CFGL, &flash_dma_desc);
 
   while (FCTL & FCTL_BUSY)
     ;
@@ -85,5 +81,4 @@ void flash_write(uint16_t offset, uint8_t *buf, uint16_t len) __critical {
     ;
 
   DMAIRQ &= ~DMA_CH2;
-  EA = 1;
 }

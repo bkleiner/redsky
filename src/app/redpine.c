@@ -380,7 +380,7 @@ inline void redpine_send_update() {
   packet[2] = RNDL;
 
   // drop size, lqi & rssi from packet
-  uart_start(packet + 1, REDPINE_PACKET_SIZE - 1);
+  uart_dma_start(packet + 1, REDPINE_PACKET_SIZE - 1);
 }
 
 void redpine_main() {

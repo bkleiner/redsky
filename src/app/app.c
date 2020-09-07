@@ -1,15 +1,4 @@
-#include <stdint.h>
-
-#include "cc25xx.h"
-
-#include "debug.h"
-#include "delay.h"
-#include "dma.h"
-#include "flash.h"
-#include "led.h"
-#include "radio.h"
-#include "redpine.h"
-#include "timer.h"
+#include "app.h"
 
 void main() {
   led_init();
@@ -26,8 +15,8 @@ void main() {
   uart_init();
   led_red_off();
 
-  debug_print("booting...\r\n");
   delay_ms(250);
+  debug_print("booting...\r\n");
 
   led_red_on();
   flash_init();

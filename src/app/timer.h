@@ -4,9 +4,7 @@
 #include <stdint.h>
 
 #include "cc25xx.h"
-
-void clock_init();
-void clock_init_fast();
+#include "clock.h"
 
 void timer_init();
 

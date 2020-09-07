@@ -1,5 +1,7 @@
 #include "led.h"
 
+#include "cc25xx.h"
+
 #define LED_GREEN_DIR PORT2DIR(LED_GREEN_PORT)
 #define LED_RED_DIR PORT2DIR(LED_RED_PORT)
 #define LED_RED_BIT PORT2BIT(LED_RED_PORT, LED_RED_PIN)

@@ -1,0 +1,8 @@
+#ifndef BOOTLOADER_H
+#define BOOTLOADER_H
+
+// version 1.0
+#define BOOTLOADER_VERSION 0x10
+#define BOOTLOADER_DEVICE_ID 0x0410
+
+#endif
