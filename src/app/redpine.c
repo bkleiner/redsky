@@ -2,9 +2,9 @@
 
 #include "debug.h"
 #include "delay.h"
-#include "flash.h"
 #include "led.h"
 #include "radio.h"
+#include "storage.h"
 #include "timer.h"
 
 #define HOPTABLE_SIZE 49
@@ -155,17 +155,23 @@ void redpine_increment_channel(int8_t cnt) {
   redpine_set_channel(current_channel_index);
 }
 
-void redpine_handle_overflows() {
+inline uint8_t redpine_handle_overflows() {
   uint8_t marc_state = radio_read_reg(MARCSTATE) & 0x1F;
   if (marc_state == 0x11) {
+    // debug_print("redpine_rx_overflow\r\n");
+
     radio_strobe(RFST_SIDLE);
     while (radio_read_reg(MARCSTATE) != 0x01)
       ;
 
     radio_reset_packet();
     radio_enable_rx();
+
     radio_strobe(RFST_SRX);
+    return 1;
   }
+
+  return 0;
 }
 
 void redpine_tune() {
@@ -229,10 +235,11 @@ void redpine_tune() {
         continue;
       }
 
-      redpine_handle_overflows();
-      radio_reset_packet();
-      radio_enable_rx();
-      radio_strobe(RFST_SRX);
+      if (!redpine_handle_overflows()) {
+        radio_reset_packet();
+        radio_enable_rx();
+        radio_strobe(RFST_SRX);
+      }
 
       if (!REDPINE_VALID_PACKET_BIND(packet)) {
         continue;
@@ -288,10 +295,11 @@ void redpine_fetch_txid() {
       continue;
     }
 
-    redpine_handle_overflows();
-    radio_reset_packet();
-    radio_enable_rx();
-    radio_strobe(RFST_SRX);
+    if (!redpine_handle_overflows()) {
+      radio_reset_packet();
+      radio_enable_rx();
+      radio_strobe(RFST_SRX);
+    }
 
     if (!REDPINE_VALID_PACKET_BIND(packet)) {
       continue;
@@ -353,10 +361,10 @@ void redpine_init() {
 
   redpine_configure();
 
-  flash_read(0x0, (uint8_t *)&bind, sizeof(bind_data));
+  storage_read((uint8_t *)&bind, sizeof(bind_data));
   if (bind.txid[0] == 0x0 && bind.txid[1] == 0x0) {
     redpine_bind();
-    flash_write(0x0, (uint8_t *)&bind, sizeof(bind_data));
+    storage_write((uint8_t *)&bind, sizeof(bind_data));
   }
 
   redpine_calibrate();
@@ -425,6 +433,8 @@ void redpine_main() {
       }
       if (missing >= 250) {
         radio_strobe(RFST_SIDLE);
+        radio_init();
+        radio_reset_packet();
         timer_timeout_set_100us(0);
         missing = 50;
         continue;

@@ -4,7 +4,7 @@ void main() {
   led_init();
 
   led_red_on();
-  clock_init_fast();
+  clock_init();
   timer_init();
   dma_init();
   led_red_off();
@@ -12,7 +12,7 @@ void main() {
   EA = 1;
 
   led_red_on();
-  uart_init();
+  uart_dma_init();
   led_red_off();
 
   delay_ms(250);

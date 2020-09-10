@@ -5,6 +5,8 @@
 #include "led.h"
 #include "uart.h"
 
+#include <string.h>
+
 #define UART_TX_BUF_SIZE 64
 
 static volatile uint8_t uart_dma_transfer_done;
@@ -39,6 +41,9 @@ void uart_dma_init() {
 }
 
 void uart_dma_isr() {
+  while (!(U0CSR & UxCSR_TX_BYTE))
+    ;
+  U0CSR &= ~UxCSR_TX_BYTE;
   uart_dma_transfer_done = 1;
 }
 
@@ -67,16 +72,14 @@ uint8_t uart_dma_start(uint8_t *data, uint16_t len) {
     return 0;
   }
 
-  for (uint16_t i = 0; i < len; i++) {
-    uart_tx_buf[i + 1] = data[i];
-  }
+  memcpy(uart_tx_buf + 1, data, len);
   uart_tx_buf[0] = len + 1;
 
   return uart_flush();
 }
 
 uint16_t _strlen(const char *str) {
-  char *ptr = str;
+  char *ptr = (char *)str;
   while (*ptr) {
     ptr++;
   }
@@ -87,7 +90,7 @@ void uart_dma_print(const char *str) {
   while (uart_update() == 0)
     ;
 
-  uart_dma_start(str, _strlen(str));
+  uart_dma_start((uint8_t *)str, _strlen(str));
 }
 
 #ifdef DEBUG_OUTPUT

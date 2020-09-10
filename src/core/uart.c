@@ -2,6 +2,8 @@
 
 #include "cc25xx.h"
 
+#include "delay.h"
+
 #define BAUD_M_115200 34
 #define BAUD_E_115200 12
 
@@ -9,9 +11,6 @@
 #define BAUD_E_230400 13
 
 #define UxGCR_ORDER (1 << 5)
-
-#define UxCSR_MODE_ENABLE 0x80
-#define UxCSR_TX_BYTE (1 << 1)
 
 typedef union {
   uint8_t raw;
@@ -27,12 +26,16 @@ typedef union {
   };
 } uart_config_t;
 
-void enable_inverter() {
-  P1_0 = 1;
+inline void enable_inverter() {
+  if (P1_0 != 1) {
+    P1_0 = 1;
+  }
 }
 
-void disable_inverter() {
-  P1_0 = 0;
+inline void disable_inverter() {
+  if (P1_0 != 0) {
+    P1_0 = 0;
+  }
 }
 
 void uart_init() {
@@ -68,24 +71,39 @@ void uart_init() {
   } else {
     U0GCR &= ~UxGCR_ORDER;
   }
+  U0CSR |= UxCSR_RX_ENABLE;
+}
+
+uint8_t uart_get_no_timeout() {
+  disable_inverter();
+
+  URX0IF = 0;
+  while (!URX0IF)
+    ;
+  uint8_t val = U0DBUF;
+  URX0IF = 0;
+
+  return val;
 }
 
 void uart_put(uint8_t val) {
+  enable_inverter();
+
   UTX0IF = 0;
   U0DBUF = val;
-  while (!UTX0IF)
+  while (!UTX0IF || !(U0CSR & UxCSR_TX_BYTE))
     ;
+  U0CSR &= ~UxCSR_TX_BYTE;
   UTX0IF = 0;
 }
 
 uint8_t uart_get(uint8_t *val, uint16_t timeout) {
   disable_inverter();
 
-  U0CSR |= 0x40;
   URX0IF = 0;
 
-  while (!URX0IF && timeout > 0)
-    timeout--;
+  while (!URX0IF && --timeout > 0)
+    ;
 
   if (timeout == 0) {
     return 0;
@@ -93,9 +111,6 @@ uint8_t uart_get(uint8_t *val, uint16_t timeout) {
 
   *val = U0DBUF;
   URX0IF = 0;
-  U0CSR |= ~0x40;
-
-  enable_inverter();
 
   return 1;
 }

@@ -51,49 +51,5 @@ void delay_us(uint16_t us) {
 }
 
 void delay_45_nop() {
-  __asm__("nop");
-  __asm__("nop");
-  __asm__("nop");
-  __asm__("nop");
-  __asm__("nop");
-  __asm__("nop");
-  __asm__("nop");
-  __asm__("nop");
-  __asm__("nop");
-  __asm__("nop");
-  __asm__("nop");
-  __asm__("nop");
-  __asm__("nop");
-  __asm__("nop");
-  __asm__("nop");
-  __asm__("nop");
-  __asm__("nop");
-  __asm__("nop");
-  __asm__("nop");
-  __asm__("nop");
-  __asm__("nop");
-  __asm__("nop");
-  __asm__("nop");
-  __asm__("nop");
-  __asm__("nop");
-  __asm__("nop");
-  __asm__("nop");
-  __asm__("nop");
-  __asm__("nop");
-  __asm__("nop");
-  __asm__("nop");
-  __asm__("nop");
-  __asm__("nop");
-  __asm__("nop");
-  __asm__("nop");
-  __asm__("nop");
-  __asm__("nop");
-  __asm__("nop");
-  __asm__("nop");
-  __asm__("nop");
-  __asm__("nop");
-  __asm__("nop");
-  __asm__("nop");
-  __asm__("nop");
-  __asm__("nop");
+    delay_us(15);
 }

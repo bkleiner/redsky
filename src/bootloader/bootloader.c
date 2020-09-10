@@ -2,39 +2,53 @@
 
 #include "clock.h"
 #include "delay.h"
+#include "flash.h"
 #include "led.h"
 #include "uart.h"
 
-typedef enum {
-  CMD_INIT = 0x7F,
-  CMD_GET = 0x00,
-  CMD_GET_VERSION = 0x01,
-  CMD_GET_ID = 0x02,
-  CMD_READ_MEMORY = 0x11,
-  CMD_GO = 0x21,
-  CMD_WRITE_MEMORY = 0x31,
-  CMD_ERASE = 0x43,
-} bootloader_cmd;
+uint8_t read_address(uint16_t *addr) {
+  uint8_t checksum = 0;
+  uint8_t data = 0;
 
-typedef enum {
-  RESPONSE_ACK = 0x79,
-  RESPONSE_NACK = 0x1F,
-} bootloader_response;
+  if (!uart_get(&data, 0xFFFF)) {
+    return 0;
+  }
+  checksum ^= data;
 
-typedef enum {
-  STATE_IDLE,
-  STATE_CHECKSUM,
-  STATE_CMD,
-  STATE_ERROR = 0xFF
-} bootloader_state;
+  if (!uart_get(&data, 0xFFFF)) {
+    return 0;
+  }
+  checksum ^= data;
+
+  if (!uart_get(&data, 0xFFFF)) {
+    return 0;
+  }
+  *addr = data;
+  checksum ^= data;
+
+  if (!uart_get(&data, 0xFFFF)) {
+    return 0;
+  }
+  *addr = ((*addr) << 8) | data;
+  checksum ^= data;
+
+  if (!uart_get(&data, 0xFFFF)) {
+    return 0;
+  }
+
+  if (checksum != data) {
+    return 0;
+  }
+
+  return 1;
+}
 
 void bootloader() {
-  uart_put(0x7F);
-
   bootloader_state state = STATE_IDLE;
 
   uint8_t cmd = 0;
   uint8_t data = 0;
+  __xdata uint8_t buf[512];
 
   while (1) {
     led_green_toggle();
@@ -43,7 +57,11 @@ void bootloader() {
     default:
     case STATE_IDLE:
       if (uart_get(&cmd, 0xFFFF)) {
-        state = STATE_CHECKSUM;
+        if (cmd == CMD_INIT) {
+          uart_put(RESPONSE_ACK);
+        } else {
+          state = STATE_CHECKSUM;
+        }
       }
       break;
     case STATE_CHECKSUM: {
@@ -117,6 +135,81 @@ void bootloader() {
       state = STATE_IDLE;
       break;
 
+    case (STATE_CMD + CMD_READ_MEMORY): {
+      uint16_t addr = 0;
+      if (!read_address(&addr)) {
+        state = STATE_ERROR;
+        break;
+      }
+      uart_put(RESPONSE_ACK);
+
+      uint8_t len = 0;
+      if (!uart_get(&len, 0xFFFF)) {
+        state = STATE_ERROR;
+        break;
+      }
+
+      if (!uart_get(&data, 0xFFFF)) {
+        state = STATE_ERROR;
+        break;
+      }
+
+      if (data != (len ^ 0xFF)) {
+        state = STATE_ERROR;
+        break;
+      }
+      uart_put(RESPONSE_ACK);
+
+      flash_read(addr, buf, ((uint16_t)len) + 1);
+
+      for (uint16_t i = 0; i < len + 1; i++) {
+        uart_put(buf[i]);
+      }
+      state = STATE_IDLE;
+      break;
+    }
+
+    case (STATE_CMD + CMD_WRITE_MEMORY): {
+      uint16_t addr = 0;
+      if (!read_address(&addr)) {
+        state = STATE_ERROR;
+        break;
+      }
+      uart_put(RESPONSE_ACK);
+
+      uint8_t len = 0;
+      if (!uart_get(&len, 0xFFFF)) {
+        state = STATE_ERROR;
+        break;
+      }
+
+      if (!uart_get(&data, 0xFFFF)) {
+        state = STATE_ERROR;
+        break;
+      }
+
+      if (data != (len ^ 0xFF)) {
+        state = STATE_ERROR;
+        break;
+      }
+      uart_put(RESPONSE_ACK);
+
+      for (uint16_t i = 0; i < len + 1; i++) {
+        if (!uart_get(&data, 0xFFFF)) {
+          state = STATE_ERROR;
+          break;
+        }
+        buf[i] = data;
+      }
+      if (state == STATE_ERROR) {
+        break;
+      }
+
+      flash_write(addr, buf, ((uint16_t)len) + 1);
+      state = STATE_IDLE;
+      break;
+    }
+
     case STATE_ERROR:
       uart_put(RESPONSE_NACK);
       state = STATE_IDLE;
@@ -129,9 +222,19 @@ void main() {
   led_init();
 
   led_red_on();
-  clock_init_fast();
+  clock_init();
   uart_init();
   led_red_off();
 
-  delay_ms(250);
+  led_green_on();
+  for (uint8_t i = 0; i < 250; i++) {
+    uint8_t magic = 0;
+    if (uart_get(&magic, 0x1FFF) && magic == CMD_INIT) {
+      uart_put(RESPONSE_ACK);
+      bootloader();
+    }
+  }
+  led_green_off();
+
+  // jump to app
 }

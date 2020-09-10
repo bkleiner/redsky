@@ -2,25 +2,20 @@
 
 #include "delay.h"
 
+#include <string.h>
+
 #define FLASH_MAGIC 0xdead
 #define FLASH_MAGIC_ADDR 0
 
-#define FCTL_BUSY (1 << 7)
-#define FCTL_SWBUSY (1 << 6)
-#define FCTL_WRITE (1 << 1)
-#define FCTL_ERASE (1 << 0)
-
 static __xdata dma_desc_t flash_dma_desc;
-
-__code __at(FLASH_PAGE_OFFSET) uint8_t flash_storage_page[FLASH_PAGE_SIZE] = {0x0};
 
 void flash_init() {
 }
 
 void flash_read(uint16_t addr, uint8_t *buf, uint16_t len) {
-  for (uint16_t i = 0; i < len; i++) {
-    buf[i] = flash_storage_page[addr + i];
-  }
+  __code uint8_t *ptr = (__code uint8_t *)addr;
+
+  memcpy(buf, ptr, len);
 }
 
 void flash_start_write() {
@@ -31,8 +26,20 @@ void flash_start_erase() {
   __asm__(".even\nMOV _FCTL,#0x01\nNOP");
 }
 
+void flash_erase(uint16_t page) {
+  while (FCTL & FCTL_BUSY)
+    ;
+
+  FWT = 0x2a;
+  SET_WORD(FADDRH, FADDRL, page >> 1);
+  flash_start_erase();
+
+  while (FCTL & FCTL_BUSY)
+    ;
+}
+
 void flash_write(uint16_t offset, uint8_t *buf, uint16_t len) __critical {
-  if (len & 0x1 == 1) {
+  if ((len & 0x1) == 1) {
     len++;
   }
 
@@ -58,27 +65,23 @@ void flash_write(uint16_t offset, uint8_t *buf, uint16_t len) __critical {
     ;
 
   FWT = 0x2a;
-  SET_WORD(FADDRH, FADDRL, ((uint16_t)flash_storage_page) >> 1);
-  flash_start_erase();
-
-  while (FCTL & FCTL_BUSY)
-    ;
+  SET_WORD(FADDRH, FADDRL, offset >> 1);
 
   DMAIRQ = 0;
   DMAARM = 0x80 | 0x1F;
   delay_45_nop();
 
-  DMAARM = DMA_CH2;
+  DMAARM = DMA_CH0;
   delay_45_nop();
 
   flash_start_write();
-  DMAREQ |= DMA_CH2;
+  DMAREQ |= DMA_CH0;
 
-  while ((DMAIRQ & DMA_CH2) == 0)
+  while ((DMAIRQ & DMA_CH0) == 0)
     ;
 
   while (FCTL & (FCTL_SWBUSY | FCTL_BUSY))
     ;
 
-  DMAIRQ &= ~DMA_CH2;
+  DMAIRQ &= ~DMA_CH0;
 }

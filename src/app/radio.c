@@ -1,6 +1,7 @@
 #include "radio.h"
 
 #include "debug.h"
+#include "delay.h"
 #include "dma.h"
 
 #include "redpine.h"
@@ -47,7 +48,6 @@ void radio_init() {
 
 #ifdef RF_LNA_PORT
   PORT2DIR(RF_LNA_PORT) |= (1 << RF_LNA_PIN);
-  // set default to LNA active
   RF_LNA_ENABLE();
 #ifdef RF_PA_PORT
   PORT2DIR(RF_PA_PORT) |= (1 << RF_PA_PIN);
@@ -65,6 +65,9 @@ void radio_init() {
 
   IP1 |= (1 << 0);
   IP0 |= (1 << 0);
+
+  DMAARM = DMA_ABORT | DMA_CH0;
+  delay_45_nop();
 
   SET_WORD(dma_desc[0].SRCADDRH, dma_desc[0].SRCADDRL, &X_RFD);
   SET_WORD(dma_desc[0].DESTADDRH, dma_desc[0].DESTADDRL, packet);
@@ -103,8 +106,9 @@ void radio_switch_antenna() {
 }
 
 void radio_enable_rx() {
-  if ((DMAARM & DMA_CH0) == 0)
+  if ((DMAARM & DMA_CH0) == 0) {
     DMAARM |= DMA_CH0;
+  }
 }
 
 void radio_isr(void) __interrupt(RF_VECTOR) {

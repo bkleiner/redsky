@@ -30,6 +30,17 @@
 #define DMA_CH3 (1 << 3)
 #define DMA_CH4 (1 << 4)
 
+#define DMA_ABORT (1 << 7)
+
+#define FCTL_BUSY (1 << 7)
+#define FCTL_SWBUSY (1 << 6)
+#define FCTL_WRITE (1 << 1)
+#define FCTL_ERASE (1 << 0)
+
+#define UxCSR_TX_BYTE 0x2
+#define UxCSR_RX_ENABLE 0x40
+#define UxCSR_MODE_ENABLE 0x80
+
 #define HI(a) (uint8_t)((uint16_t)(a) >> 8)
 #define LO(a) (uint8_t)(((uint16_t)a) & 0xFF)
 #define SET_WORD(H, L, val) \

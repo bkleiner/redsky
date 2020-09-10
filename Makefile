@@ -12,11 +12,11 @@ INCLUDE_DIRS := \
 	src/config \
 	src/core
 
-CORE_SOURCES := src/core/led.c \
-								src/core/clock.c \
+CORE_SOURCES := src/core/clock.c \
 								src/core/flash.c \
 								src/core/delay.c \
-								src/core/uart.c 
+								src/core/uart.c \
+								src/core/led.c 
 
 BOOTLOADER_SOURCES := src/bootloader/bootloader.c 
 
@@ -26,6 +26,7 @@ APP_SOURCES := src/app/app.c \
 							 src/app/radio.c \
 							 src/app/debug.c \
 							 src/app/dma.c \
+							 src/app/storage.c \
 							 src/app/redpine.c
 
 DEBUG_FLAGS = --debug \
