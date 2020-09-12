@@ -37,7 +37,7 @@ void uart_dma_init() {
 
   // ARM DMA channel 0
   DMAARM |= DMA_CH1;
-  delay_45_nop();
+  delay_us(15);
 }
 
 void uart_dma_isr() {
@@ -56,7 +56,7 @@ inline uint8_t uart_update() {
   }
 
   DMAARM |= DMA_CH1;
-  delay_45_nop();
+  delay_us(15);
   return 1;
 }
 

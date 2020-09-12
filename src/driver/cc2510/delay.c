@@ -49,7 +49,3 @@ void delay_us(uint16_t us) {
         __asm__("nop\nnop\nnop");
     }
 }
-
-void delay_45_nop() {
-    delay_us(15);
-}

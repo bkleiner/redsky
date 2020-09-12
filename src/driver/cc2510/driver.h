@@ -1,10 +1,13 @@
-#ifndef CC25XX_H
-#define CC25XX_H
+#ifndef DRIVER_H
+#define DRIVER_H
 
+#include <cc2510fx.h>
 #include <stdint.h>
 
 #include "config.h"
 #include "portmacros.h"
+
+#define EXT_MEMORY __xdata
 
 #define PIN_0 (1 << 0)
 #define PIN_1 (1 << 1)
@@ -40,6 +43,17 @@
 #define UxCSR_TX_BYTE 0x2
 #define UxCSR_RX_ENABLE 0x40
 #define UxCSR_MODE_ENABLE 0x80
+
+#define RFST_SNOP 0x05
+#define RFST_SIDLE 0x04
+#define RFST_STX 0x03
+#define RFST_SRX 0x02
+#define RFST_SCAL 0x01
+#define RFST_SFSTXON 0x00
+
+SFRX(TEST0, 0xDF25);
+SFRX(TEST1, 0xDF24);
+SFRX(TEST2, 0xDF23);
 
 #define HI(a) (uint8_t)((uint16_t)(a) >> 8)
 #define LO(a) (uint8_t)(((uint16_t)a) & 0xFF)

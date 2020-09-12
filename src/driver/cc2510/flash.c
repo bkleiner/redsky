@@ -69,10 +69,10 @@ void flash_write(uint16_t offset, uint8_t *buf, uint16_t len) __critical {
 
   DMAIRQ = 0;
   DMAARM = 0x80 | 0x1F;
-  delay_45_nop();
+  delay_us(15);
 
   DMAARM = DMA_CH0;
-  delay_45_nop();
+  delay_us(15);
 
   flash_start_write();
   DMAREQ |= DMA_CH0;

@@ -1,0 +1,15 @@
+#ifndef BOARD_H
+#define BOARD_H
+
+#define LED_GREEN_PORT GPIOA
+#define LED_GREEN_PIN 12
+#define LED_RED_PORT GPIOA
+#define LED_RED_PIN 11
+
+#define CC2500_GPIO_PORT GPIOA
+#define CC2500_CSN_PIN 4
+#define CC2500_SCK_PIN 5
+#define CC2500_MISO_PIN 6
+#define CC2500_MOSI_PIN 7
+
+#endif

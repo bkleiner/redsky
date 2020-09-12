@@ -21,4 +21,6 @@ void clock_init() {
 
   led_red_off();
   led_green_off();
+
+  EA = 1;
 }

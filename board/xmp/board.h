@@ -1,8 +1,6 @@
 #ifndef BOARD_H
 #define BOARD_H
 
-#include <cc2510fx.h>
-
 #define FLASH_PAGE_SIZE 1024
 #define FLASH_PAGE_OFFSET 0x400
 

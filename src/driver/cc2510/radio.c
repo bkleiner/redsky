@@ -67,7 +67,7 @@ void radio_init() {
   IP0 |= (1 << 0);
 
   DMAARM = DMA_ABORT | DMA_CH0;
-  delay_45_nop();
+  delay_us(15);
 
   SET_WORD(dma_desc[0].SRCADDRH, dma_desc[0].SRCADDRL, &X_RFD);
   SET_WORD(dma_desc[0].DESTADDRH, dma_desc[0].DESTADDRL, packet);

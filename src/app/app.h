@@ -3,6 +3,7 @@
 
 #include "driver.h"
 
+#include "clock.h"
 #include "debug.h"
 #include "delay.h"
 #include "dma.h"

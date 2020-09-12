@@ -1,6 +1,6 @@
 #include "app.h"
 
-void main() {
+int main() {
   led_init();
 
   led_red_on();
@@ -8,8 +8,6 @@ void main() {
   timer_init();
   dma_init();
   led_red_off();
-
-  EA = 1;
 
   led_red_on();
   uart_dma_init();

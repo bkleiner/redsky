@@ -1,7 +1,9 @@
 #include "redpine.h"
 
+#include "crc.h"
 #include "debug.h"
 #include "delay.h"
+#include "driver.h"
 #include "led.h"
 #include "radio.h"
 #include "storage.h"
@@ -39,19 +41,19 @@ typedef enum {
 #define min(a, b) (((a) < (b)) ? (a) : (b))
 #define max(a, b) (((a) > (b)) ? (a) : (b))
 
-__xdata bind_data bind = {
+bind_data EXT_MEMORY bind = {
     .txid = {0xFF, 0xFF},
 };
 
-extern volatile __xdata uint8_t packet[REDPINE_PACKET_BUFFER_SIZE];
+extern volatile EXT_MEMORY uint8_t packet[REDPINE_PACKET_BUFFER_SIZE];
 
-__xdata uint8_t current_channel_index = 0;
+EXT_MEMORY uint8_t current_channel_index = 0;
 
-__xdata uint8_t fscal1_table[HOPTABLE_SIZE];
-__xdata uint8_t fscal2;
-__xdata uint8_t fscal3;
+EXT_MEMORY uint8_t fscal1_table[HOPTABLE_SIZE];
+EXT_MEMORY uint8_t fscal2;
+EXT_MEMORY uint8_t fscal3;
 
-void redpine_configure() {
+static void redpine_configure() {
   debug_print("redpine_configure\r\n");
 
   //radio_write_reg(FIFOTHR, 0x07);
@@ -103,14 +105,14 @@ void redpine_configure() {
   radio_write_reg(ADDR, 0x00);
 }
 
-void redpine_tune_freq(int8_t freq) {
+static void redpine_tune_freq(int8_t freq) {
   radio_strobe(RFST_SIDLE);
   radio_write_reg(FSCTRL0, freq);
   delay_ms(1);
   radio_strobe(RFST_SRX);
 }
 
-void redpine_tune_channel(uint8_t ch) {
+static void redpine_tune_channel(uint8_t ch) {
   radio_strobe(RFST_SIDLE);
   radio_write_reg(CHANNR, ch);
   radio_strobe(RFST_SCAL);
@@ -119,7 +121,7 @@ void redpine_tune_channel(uint8_t ch) {
     ;
 }
 
-void redpine_enter_rxmode(uint8_t channel) {
+static void redpine_enter_rxmode(uint8_t channel) {
   radio_strobe(RFST_SIDLE);
 
   redpine_tune_channel(channel);
@@ -128,7 +130,7 @@ void redpine_enter_rxmode(uint8_t channel) {
   radio_strobe(RFST_SRX);
 }
 
-void redpine_set_channel(uint8_t hop_index) {
+static void redpine_set_channel(uint8_t hop_index) {
   uint8_t ch = bind.hop_table[hop_index];
 
   radio_strobe(RFST_SIDLE);
@@ -140,7 +142,7 @@ void redpine_set_channel(uint8_t hop_index) {
   radio_write_reg(CHANNR, ch);
 }
 
-void redpine_increment_channel(int8_t cnt) {
+static void redpine_increment_channel(int8_t cnt) {
   int8_t next = current_channel_index + cnt;
 
   // convert to a safe unsigned number:
@@ -155,7 +157,7 @@ void redpine_increment_channel(int8_t cnt) {
   redpine_set_channel(current_channel_index);
 }
 
-inline uint8_t redpine_handle_overflows() {
+static inline uint8_t redpine_handle_overflows() {
   uint8_t marc_state = radio_read_reg(MARCSTATE) & 0x1F;
   if (marc_state == 0x11) {
     // debug_print("redpine_rx_overflow\r\n");
@@ -174,7 +176,7 @@ inline uint8_t redpine_handle_overflows() {
   return 0;
 }
 
-void redpine_tune() {
+static void redpine_tune() {
   debug_print("redpine_tune\r\n");
 
   bind.freq_offset = 0;
@@ -222,6 +224,9 @@ void redpine_tune() {
         state = TUNE_DONE;
       }
       break;
+
+    default:
+      break;
     }
 
     redpine_tune_freq(bind.freq_offset);
@@ -267,7 +272,7 @@ void redpine_tune() {
   redpine_tune_freq(bind.freq_offset);
 }
 
-void redpine_fetch_txid() {
+static void redpine_fetch_txid() {
   redpine_enter_rxmode(0);
 
   bind.txid[0] = 0;
@@ -332,7 +337,7 @@ void redpine_fetch_txid() {
   radio_strobe(RFST_SIDLE);
 }
 
-void redpine_calibrate() {
+static void redpine_calibrate() {
   redpine_tune_freq(bind.freq_offset);
 
   for (int i = 0; i < HOPTABLE_SIZE; i++) {
@@ -347,7 +352,7 @@ void redpine_calibrate() {
   radio_strobe(RFST_SIDLE);
 }
 
-void redpine_bind() {
+static void redpine_bind() {
   debug_print("redpine_bind\r\n");
   bind.txid[0] = 0x03;
   bind.freq_offset = 0;
@@ -371,24 +376,15 @@ void redpine_init() {
   delay_ms(100);
 }
 
-inline void redpine_send_update() {
-  // seed crc
-  RNDL = 0xFF;
-  RNDL = 0xFF;
-
+static inline void redpine_send_update() {
   // move rssi up
   packet[CHANNEL_START + 7] = packet[REDPINE_PACKET_SIZE];
 
-  for (uint8_t i = 3; i < REDPINE_PACKET_SIZE; i++) {
-    RNDH = packet[i];
-  }
-
-  // set crc
-  packet[1] = RNDH;
-  packet[2] = RNDL;
+  uint16_t crc = crc_compute((uint8_t *)packet, REDPINE_PACKET_SIZE);
+  SET_WORD(packet[1], packet[2], crc);
 
   // drop size, lqi & rssi from packet
-  uart_dma_start(packet + 1, REDPINE_PACKET_SIZE - 1);
+  uart_dma_start((uint8_t *)packet + 1, REDPINE_PACKET_SIZE - 1);
 }
 
 void redpine_main() {
