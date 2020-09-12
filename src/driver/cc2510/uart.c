@@ -1,6 +1,6 @@
 #include "uart.h"
 
-#include "cc25xx.h"
+#include "driver.h"
 
 #include "delay.h"
 

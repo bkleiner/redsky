@@ -3,8 +3,7 @@
 
 #include <stdint.h>
 
-#include "cc25xx.h"
-#include "debug.h"
+#include "driver.h"
 
 void uart_dma_init();
 

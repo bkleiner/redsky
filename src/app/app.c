@@ -19,7 +19,7 @@ void main() {
   debug_print("booting...\r\n");
 
   led_red_on();
-  flash_init();
+  storage_init();
   radio_init();
   led_red_off();
 

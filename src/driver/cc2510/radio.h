@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-#include "cc25xx.h"
+#include "driver.h"
 
 #define RFST_SNOP 0x05
 #define RFST_SIDLE 0x04

@@ -1,6 +1,6 @@
 #include "clock.h"
 
-#include "cc25xx.h"
+#include "driver.h"
 #include "led.h"
 
 void clock_init() {

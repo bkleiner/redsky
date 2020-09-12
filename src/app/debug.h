@@ -4,7 +4,7 @@
 #include <stdarg.h>
 #include <stdint.h>
 
-#include "cc25xx.h"
+#include "driver.h"
 #include "uart_dma.h"
 
 #ifdef DEBUG_OUTPUT

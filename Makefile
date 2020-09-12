@@ -1,66 +1,54 @@
-CC = sdcc
-
 BUILD_DIR := build
 TARGET    ?= xm
 
 include board/$(TARGET)/board.mk
+include $(DRIVER_DIR)/driver.mk
 
 INCLUDE_DIRS := \
 	/usr/share/sdcc/include \
 	$(BOARD_DIR) \
-	src \
-	src/config \
-	src/core
+	$(DRIVER_DIR) \
+	src/app \
+	src/config
 
-CORE_SOURCES := src/core/clock.c \
-								src/core/flash.c \
-								src/core/delay.c \
-								src/core/uart.c \
-								src/core/led.c 
+DRIVER_CORE_SOURCES := $(DRIVER_DIR)/clock.c \
+											 $(DRIVER_DIR)/delay.c \
+											 $(DRIVER_DIR)/flash.c \
+											 $(DRIVER_DIR)/led.c \
+											 $(DRIVER_DIR)/uart.c 
+
+DRIVER_SOURCES := $(DRIVER_CORE_SOURCES) \
+							 		$(DRIVER_DIR)/dma.c \
+									$(DRIVER_DIR)/radio.c \
+							 		$(DRIVER_DIR)/storage.c \
+							 		$(DRIVER_DIR)/timer.c \
+									$(DRIVER_DIR)/uart_dma.c
 
 BOOTLOADER_SOURCES := src/bootloader/bootloader.c 
 
 APP_SOURCES := src/app/app.c \
-							 src/app/uart_dma.c \
-							 src/app/timer.c \
-							 src/app/radio.c \
-							 src/app/debug.c \
-							 src/app/dma.c \
-							 src/app/storage.c \
-							 src/app/redpine.c
+							 src/app/redpine.c \
+							 src/app/debug.c
 
-DEBUG_FLAGS = --debug \
-							--verbose
+DRIVER_CORE_OBJECTS=$(addsuffix .$(OBJECT_EXT),$(addprefix $(BUILD_DIR)/,$(basename $(DRIVER_CORE_SOURCES))))
+DRIVER_OBJECTS=$(addsuffix .$(OBJECT_EXT),$(addprefix $(BUILD_DIR)/,$(basename $(DRIVER_SOURCES))))
 
-CFLAGS  = $(DEBUG_FLAGS) \
-					--model-small \
-					--opt-code-speed \
-					$(addprefix -I ,$(INCLUDE_DIRS)) 
-
-LDFLAGS = --out-fmt-ihx \
-					--code-loc 0x0000 \
-					--code-size $(FLASH_SIZE) \
-					--xram-loc 0xf000 \
-					--xram-size 0x7FF \
-					--iram-size 0x100
-
-CORE_REL=$(addsuffix .rel,$(addprefix $(BUILD_DIR)/,$(basename $(CORE_SOURCES))))
-APP_REL=$(addsuffix .rel,$(addprefix $(BUILD_DIR)/,$(basename $(APP_SOURCES))))
-BOOTLOADER_REL=$(addsuffix .rel,$(addprefix $(BUILD_DIR)/,$(basename $(BOOTLOADER_SOURCES))))
+APP_OBJECTS=$(addsuffix .$(OBJECT_EXT),$(addprefix $(BUILD_DIR)/,$(basename $(APP_SOURCES))))
+BOOTLOADER_OBJECTS=$(addsuffix .$(OBJECT_EXT),$(addprefix $(BUILD_DIR)/,$(basename $(BOOTLOADER_SOURCES))))
 
 all: $(BUILD_DIR)/src/app.bin $(BUILD_DIR)/src/bootloader.bin
 
-$(BUILD_DIR)/%.rel: %.c
+$(BUILD_DIR)/%.$(OBJECT_EXT): %.c
 	@mkdir -p $(@D)
 	$(CC) $(CFLAGS) -o $@ -c $<
 
-$(BUILD_DIR)/src/app.ihx: $(APP_REL) $(CORE_REL)
+$(BUILD_DIR)/src/app.ihx: $(APP_OBJECTS) $(DRIVER_OBJECTS)
 	$(CC) $(LDFLAGS) $(CFLAGS) -o $@ $^
 
 $(BUILD_DIR)/src/app.bin: $(BUILD_DIR)/src/app.ihx
 	objcopy -Iihex -Obinary $< $@
 
-$(BUILD_DIR)/src/bootloader.ihx: $(BOOTLOADER_REL) $(CORE_REL)
+$(BUILD_DIR)/src/bootloader.ihx: $(BOOTLOADER_OBJECTS) $(DRIVER_CORE_OBJECTS)
 	$(CC) $(LDFLAGS) $(CFLAGS) -o $@ $^
 
 $(BUILD_DIR)/src/bootloader.bin: $(BUILD_DIR)/src/bootloader.ihx

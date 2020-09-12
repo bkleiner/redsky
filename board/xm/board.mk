@@ -4,3 +4,4 @@
 FLASH_SIZE=0x4000
 
 BOARD_DIR=board/xm
+DRIVER_DIR=src/driver/cc2510

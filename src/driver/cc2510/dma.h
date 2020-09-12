@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-#include "cc25xx.h"
+#include "driver.h"
 
 extern __xdata dma_desc_t dma_desc[5];
 

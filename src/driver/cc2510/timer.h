@@ -3,8 +3,8 @@
 
 #include <stdint.h>
 
-#include "cc25xx.h"
 #include "clock.h"
+#include "driver.h"
 
 void timer_init();
 

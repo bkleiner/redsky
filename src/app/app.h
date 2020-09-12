@@ -1,9 +1,7 @@
 #ifndef APP_H
 #define APP_H
 
-#include <stdint.h>
-
-#include "cc25xx.h"
+#include "driver.h"
 
 #include "debug.h"
 #include "delay.h"
