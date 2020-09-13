@@ -10,12 +10,16 @@
 #define radio_strobe(val) RFST = val
 
 void radio_init();
+#define radio_io_config() \
+  {}
 void radio_enable_rx();
 
 uint8_t radio_received_packet();
 void radio_reset_packet();
 
 void radio_switch_antenna();
+
+void radio_handle_overflows();
 
 void radio_isr(void) __interrupt(RF_VECTOR);
 

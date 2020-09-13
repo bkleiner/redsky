@@ -39,5 +39,5 @@ void gpio_reset(GPIO_TypeDef *port, uint8_t pin) {
 }
 
 uint8_t gpio_read(GPIO_TypeDef *port, uint8_t pin) {
-  return READ_BIT(port->ODR, (GPIO_ODR_ODR0 << pin));
+  return READ_BIT(port->IDR, (GPIO_IDR_IDR0 << pin)) != 0;
 }

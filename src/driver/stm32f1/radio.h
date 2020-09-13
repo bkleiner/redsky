@@ -83,7 +83,6 @@
 #define TEST2 0x2C
 #define TEST1 0x2D
 #define TEST0 0x2E
-
 #define PA_TABLE0 0x3E
 
 uint8_t radio_read_reg(uint8_t reg);
@@ -91,7 +90,10 @@ uint8_t radio_write_reg(uint8_t reg, uint8_t val);
 void radio_strobe(uint8_t val);
 
 void radio_init();
+void radio_io_config();
 void radio_enable_rx();
+
+void radio_handle_overflows();
 
 uint8_t radio_received_packet();
 void radio_reset_packet();

@@ -1,5 +1,6 @@
 #include "uart_dma.h"
 
+#include "debug.h"
 #include "delay.h"
 #include "dma.h"
 #include "led.h"

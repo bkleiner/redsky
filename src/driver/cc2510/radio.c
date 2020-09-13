@@ -118,3 +118,17 @@ void radio_isr(void) __interrupt(RF_VECTOR) {
   radio_enable_rx();
   received_packet = 1;
 }
+
+void radio_handle_overflows() {
+  uint8_t marc_state = radio_read_reg(MARCSTATE) & 0x1F;
+  if (marc_state == 0x11) {
+    radio_strobe(RFST_SIDLE);
+    while (radio_read_reg(MARCSTATE) != 0x01)
+      ;
+
+    radio_reset_packet();
+    radio_enable_rx();
+
+    radio_strobe(RFST_SRX);
+  }
+}

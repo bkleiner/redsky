@@ -10,7 +10,7 @@ void uart_init() {
   gpio_config(GPIOA, 10, GPIO_INPUT | GPIO_OD);
 
   USART1->CR1 = USART_CR1_UE + USART_CR1_TE + USART_CR1_RE;
-  USART1->BRR = (SystemCoreClock / 115200);
+  USART1->BRR = (SystemCoreClock / 230400);
 }
 
 void uart_put(uint8_t val) {

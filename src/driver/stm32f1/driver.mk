@@ -4,7 +4,7 @@ CP = arm-none-eabi-objcopy
 OBJECT_EXT = o
 TARGET_EXT = elf
 
-CFLAGS = -g -O0 -Wall -Wextra \
+CFLAGS = -g -O1 -Wall -Wextra \
 				 -mthumb -mcpu=cortex-m3 \
 				 --specs=nano.specs --specs=nosys.specs \
 				 -DSTM32F103xB

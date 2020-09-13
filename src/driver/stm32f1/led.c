@@ -2,9 +2,6 @@
 
 #include "gpio.h"
 
-#define GPIO_PIN(VAR, PIN) GPIO_PIN_(VAR, PIN)
-#define GPIO_PIN_(VAR, PIN) VAR##PIN
-
 void led_green_on() {
   gpio_set(LED_GREEN_PORT, LED_GREEN_PIN);
 }
@@ -14,7 +11,7 @@ void led_green_off() {
 }
 
 void led_green_toggle() {
-  if (gpio_read(LED_GREEN_PORT, LED_GREEN_PIN)) {
+  if (READ_BIT(LED_GREEN_PORT->ODR, (GPIO_ODR_ODR0 << LED_GREEN_PIN))) {
     led_green_off();
   } else {
     led_green_on();
@@ -35,7 +32,7 @@ void led_red_off() {
 }
 
 void led_red_toggle() {
-  if (gpio_read(LED_RED_PORT, LED_RED_PIN)) {
+  if (READ_BIT(LED_RED_PORT->ODR, (GPIO_ODR_ODR0 << LED_RED_PIN))) {
     led_red_off();
   } else {
     led_red_on();
@@ -48,7 +45,7 @@ void led_red_init() {
 }
 
 void led_init() {
-  SET_BIT(RCC->APB2ENR, RCC_APB2ENR_IOPAEN + RCC_APB2ENR_AFIOEN);
+  SET_BIT(RCC->APB2ENR, RCC_APB2ENR_IOPAEN);
 
   led_red_init();
   led_green_init();

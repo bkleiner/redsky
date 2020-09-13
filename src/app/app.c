@@ -3,6 +3,8 @@
 int main() {
   led_init();
 
+  led_green_on();
+
   led_red_on();
   clock_init();
   timer_init();
@@ -22,6 +24,8 @@ int main() {
   led_red_off();
 
   delay_ms(250);
+
+  led_green_off();
 
   redpine_init();
   redpine_main();

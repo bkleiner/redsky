@@ -56,7 +56,7 @@ EXT_MEMORY uint8_t fscal3;
 static void redpine_configure() {
   debug_print("redpine_configure\r\n");
 
-  //radio_write_reg(FIFOTHR, 0x07);
+  radio_io_config();
 
   radio_write_reg(PKTLEN, REDPINE_PACKET_SIZE);
   radio_write_reg(PKTCTRL1, 0x0C);
@@ -157,25 +157,6 @@ static void redpine_increment_channel(int8_t cnt) {
   redpine_set_channel(current_channel_index);
 }
 
-static inline uint8_t redpine_handle_overflows() {
-  uint8_t marc_state = radio_read_reg(MARCSTATE) & 0x1F;
-  if (marc_state == 0x11) {
-    // debug_print("redpine_rx_overflow\r\n");
-
-    radio_strobe(RFST_SIDLE);
-    while (radio_read_reg(MARCSTATE) != 0x01)
-      ;
-
-    radio_reset_packet();
-    radio_enable_rx();
-
-    radio_strobe(RFST_SRX);
-    return 1;
-  }
-
-  return 0;
-}
-
 static void redpine_tune() {
   debug_print("redpine_tune\r\n");
 
@@ -236,15 +217,12 @@ static void redpine_tune() {
 
     while (!timer_timeout() && !done) {
       if (!radio_received_packet()) {
-        radio_switch_antenna();
         continue;
       }
 
-      if (!redpine_handle_overflows()) {
-        radio_reset_packet();
-        radio_enable_rx();
-        radio_strobe(RFST_SRX);
-      }
+      radio_reset_packet();
+      radio_enable_rx();
+      radio_strobe(RFST_SRX);
 
       if (!REDPINE_VALID_PACKET_BIND(packet)) {
         continue;
@@ -260,7 +238,11 @@ static void redpine_tune() {
 
       packet[0] = 0x00;
     }
+
+    radio_handle_overflows();
+
     if (!done) {
+      radio_switch_antenna();
       debug_print("-");
     }
   }
@@ -293,18 +275,18 @@ static void redpine_fetch_txid() {
       radio_reset_packet();
       radio_enable_rx();
       radio_strobe(RFST_SRX);
+
+      radio_handle_overflows();
+      radio_switch_antenna();
     }
 
     if (!radio_received_packet()) {
-      radio_switch_antenna();
       continue;
     }
 
-    if (!redpine_handle_overflows()) {
-      radio_reset_packet();
-      radio_enable_rx();
-      radio_strobe(RFST_SRX);
-    }
+    radio_reset_packet();
+    radio_enable_rx();
+    radio_strobe(RFST_SRX);
 
     if (!REDPINE_VALID_PACKET_BIND(packet)) {
       continue;
@@ -420,6 +402,7 @@ void redpine_main() {
       if (!packet_received) {
         missing++;
         led_red_on();
+        led_green_off();
       }
       if (missing >= 5 && (missing % 5) == 0) {
         radio_switch_antenna();
@@ -429,16 +412,16 @@ void redpine_main() {
       }
       if (missing >= 250) {
         radio_strobe(RFST_SIDLE);
-        radio_init();
+        //radio_init();
         radio_reset_packet();
         timer_timeout_set_100us(0);
         missing = 50;
         continue;
       }
       packet_received = 0;
-    }
 
-    redpine_handle_overflows();
+      radio_handle_overflows();
+    }
 
     if (!radio_received_packet()) {
       packet_received = 0;
@@ -462,7 +445,5 @@ void redpine_main() {
     missing = 0;
     packet_received = 1;
     conn_lost = 0;
-
-    led_green_off();
   }
 }
