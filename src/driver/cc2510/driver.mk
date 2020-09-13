@@ -1,6 +1,8 @@
 CC = sdcc
+CP = objcopy
 
 OBJECT_EXT = rel
+TARGET_EXT = ihx
 
 DEBUG_FLAGS = --debug \
 							--verbose
@@ -16,7 +18,7 @@ LDFLAGS = --out-fmt-ihx \
 					--xram-size 0x7FF \
 					--iram-size 0x100
 
-#	/usr/share/sdcc/include 
+CP_FLAGS = -Iihex
 
 DRIVER_CORE_SOURCES := $(DRIVER_DIR)/clock.c \
 											 $(DRIVER_DIR)/delay.c \

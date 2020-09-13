@@ -35,17 +35,17 @@ $(BUILD_DIR)/%.$(OBJECT_EXT): %.s
 	@mkdir -p $(@D)
 	$(CC) $(CFLAGS) -o $@ -c $<
 
-$(BUILD_DIR)/src/app.ihx: $(APP_OBJECTS) $(DRIVER_OBJECTS)
+$(BUILD_DIR)/src/app.$(TARGET_EXT): $(APP_OBJECTS) $(DRIVER_OBJECTS)
 	$(CC) $^ $(LDFLAGS) $(CFLAGS) -o $@
 
-$(BUILD_DIR)/src/app.bin: $(BUILD_DIR)/src/app.ihx
-	objcopy -Iihex -Obinary $< $@
+$(BUILD_DIR)/src/app.bin: $(BUILD_DIR)/src/app.$(TARGET_EXT)
+	$(CP) $(CP_FLAGS) -Obinary $< $@
 
-$(BUILD_DIR)/src/bootloader.ihx: $(BOOTLOADER_OBJECTS) $(DRIVER_CORE_OBJECTS)
+$(BUILD_DIR)/src/bootloader.$(TARGET_EXT): $(BOOTLOADER_OBJECTS) $(DRIVER_CORE_OBJECTS)
 	$(CC) $^ $(LDFLAGS) $(CFLAGS) -o $@
 
-$(BUILD_DIR)/src/bootloader.bin: $(BUILD_DIR)/src/bootloader.ihx
-	objcopy -Iihex -Obinary $< $@
+$(BUILD_DIR)/src/bootloader.bin: $(BUILD_DIR)/src/bootloader.$(TARGET_EXT)
+	$(CP) $(CP_FLAGS) -Obinary $< $@
 
 clean:
 	rm -rf $(BUILD_DIR)

@@ -1,6 +1,8 @@
 CC = arm-none-eabi-gcc
+CP = arm-none-eabi-objcopy
 
 OBJECT_EXT = o
+TARGET_EXT = elf
 
 CFLAGS = -g -O0 -Wall -Wextra \
 				 -mthumb -mcpu=cortex-m3 \
