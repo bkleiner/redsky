@@ -1,5 +1,5 @@
-#ifndef CLOCK_H
-#define CLOCK_H
+#ifndef CRC_H
+#define CRC_H
 
 #include <stdint.h>
 
