@@ -280,18 +280,27 @@ int bootloader_main() {
 
   led_red_on();
   clock_init();
+
+  delay_ms(250);
   uart_init();
-  led_red_off();
 
   led_green_on();
-  for (uint8_t i = 0; i < 250; i++) {
+  for (uint8_t i = 0; i < 200; i++) {
     uint8_t magic = 0;
-    if (uart_get(&magic, 0xFFFF) && magic == CMD_INIT) {
-      uart_put(RESPONSE_ACK);
-      bootloader();
+    if (uart_get(&magic, 0x1FFF)) {
+      if (magic == CMD_INIT) {
+        // got the magic
+        uart_put(RESPONSE_ACK);
+        bootloader();
+      } else {
+        // got some noise, reset counter
+        i = 0;
+      }
     }
   }
   led_green_off();
+
+  led_red_off();
 
   jump_to(BOOTLOADER_SIZE);
   return 1;
