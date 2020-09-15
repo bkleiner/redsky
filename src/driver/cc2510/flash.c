@@ -4,17 +4,13 @@
 
 #include <string.h>
 
-#define FLASH_MAGIC 0xdead
-#define FLASH_MAGIC_ADDR 0
-
 static __xdata dma_desc_t flash_dma_desc;
 
 void flash_init() {
 }
 
-void flash_read(uint16_t addr, uint8_t *buf, uint16_t len) {
+void flash_read(uint16_t addr, uint8_t *buf, uint16_t len) __critical {
   __code uint8_t *ptr = (__code uint8_t *)addr;
-
   memcpy(buf, ptr, len);
 }
 
@@ -26,12 +22,13 @@ void flash_start_erase() {
   __asm__(".even\nMOV _FCTL,#0x01\nNOP");
 }
 
-void flash_erase(uint16_t page) {
+void flash_erase(uint16_t page) __critical {
   while (FCTL & FCTL_BUSY)
     ;
 
-  FWT = 0x2a;
-  SET_WORD(FADDRH, FADDRL, page >> 1);
+  FWT = 0x22;
+  FADDRH = page << 1;
+  FADDRL = 0;
   flash_start_erase();
 
   while (FCTL & FCTL_BUSY)
@@ -39,13 +36,9 @@ void flash_erase(uint16_t page) {
 }
 
 void flash_write(uint16_t offset, uint8_t *buf, uint16_t len) __critical {
-  if ((len & 0x1) == 1) {
-    len++;
-  }
-
   SET_WORD(flash_dma_desc.SRCADDRH, flash_dma_desc.SRCADDRL, buf);
   SET_WORD(flash_dma_desc.LENH, flash_dma_desc.LENL, len);
-  SET_WORD(flash_dma_desc.DESTADDRH, flash_dma_desc.DESTADDRL, 0xDFAF);
+  SET_WORD(flash_dma_desc.DESTADDRH, flash_dma_desc.DESTADDRL, &X_FWDATA);
 
   flash_dma_desc.VLEN = 0x0;
   flash_dma_desc.WORDSIZE = 0x0;
@@ -64,7 +57,7 @@ void flash_write(uint16_t offset, uint8_t *buf, uint16_t len) __critical {
   while (FCTL & FCTL_BUSY)
     ;
 
-  FWT = 0x2a;
+  FWT = 0x22;
   SET_WORD(FADDRH, FADDRL, offset >> 1);
 
   DMAIRQ = 0;
@@ -75,7 +68,6 @@ void flash_write(uint16_t offset, uint8_t *buf, uint16_t len) __critical {
   delay_us(15);
 
   flash_start_write();
-  DMAREQ |= DMA_CH0;
 
   while ((DMAIRQ & DMA_CH0) == 0)
     ;

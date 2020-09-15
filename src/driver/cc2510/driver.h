@@ -41,6 +41,7 @@
 #define FCTL_ERASE (1 << 0)
 
 #define UxCSR_TX_BYTE 0x2
+#define UxCSR_RX_BYTE 0x4
 #define UxCSR_RX_ENABLE 0x40
 #define UxCSR_MODE_ENABLE 0x80
 

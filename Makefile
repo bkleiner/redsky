@@ -1,6 +1,8 @@
 BUILD_DIR := build
 TARGET    ?= d8r
 
+BOOTLOADER_SIZE := 0x1000
+
 include board/$(TARGET)/board.mk
 include $(DRIVER_DIR)/driver.mk
 
@@ -9,9 +11,11 @@ INCLUDE_DIRS := $(BOARD_DIR) \
 								src/app \
 								src/config
 
-CFLAGS += $(addprefix -I ,$(INCLUDE_DIRS)) 
+CFLAGS += -DFLASH_SIZE=$(FLASH_SIZE) \
+					-DBOOTLOADER_SIZE=$(BOOTLOADER_SIZE) \
+					$(addprefix -I ,$(INCLUDE_DIRS)) 
 
-BOOTLOADER_SOURCES := src/bootloader/bootloader.c 
+BOOTLOADER_SOURCES := src/bootloader/bootloader.c
 APP_SOURCES := src/app/app.c \
 							 src/app/redpine.c \
 							 src/app/debug.c
@@ -36,13 +40,13 @@ $(BUILD_DIR)/%.$(OBJECT_EXT): %.s
 	$(CC) $(CFLAGS) -o $@ -c $<
 
 $(BUILD_DIR)/src/app.$(TARGET_EXT): $(APP_OBJECTS) $(DRIVER_OBJECTS)
-	$(CC) $^ $(LDFLAGS) $(CFLAGS) -o $@
+	$(CC) $^ $(APP_LDFLAGS) $(CFLAGS) -o $@
 
 $(BUILD_DIR)/src/app.bin: $(BUILD_DIR)/src/app.$(TARGET_EXT)
 	$(CP) $(CP_FLAGS) -Obinary $< $@
 
 $(BUILD_DIR)/src/bootloader.$(TARGET_EXT): $(BOOTLOADER_OBJECTS) $(DRIVER_CORE_OBJECTS)
-	$(CC) $^ $(LDFLAGS) $(CFLAGS) -o $@
+	$(CC) $^ $(BOOTLOADER_LDFLAGS) $(CFLAGS) -o $@
 
 $(BUILD_DIR)/src/bootloader.bin: $(BUILD_DIR)/src/bootloader.$(TARGET_EXT)
 	$(CP) $(CP_FLAGS) -Obinary $< $@

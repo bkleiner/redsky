@@ -29,4 +29,6 @@ int main() {
 
   redpine_init();
   redpine_main();
+
+  return 1;
 }

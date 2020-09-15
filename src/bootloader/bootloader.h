@@ -1,9 +1,14 @@
 #ifndef BOOTLOADER_H
 #define BOOTLOADER_H
 
+#include "driver.h"
+
 // version 1.0
 #define BOOTLOADER_VERSION 0x10
 #define BOOTLOADER_DEVICE_ID 0x0410
+
+#define BOOTLOADER_PAGES (BOOTLOADER_SIZE / FLASH_PAGE_SIZE)
+#define FLASH_PAGES (FLASH_SIZE / FLASH_PAGE_SIZE)
 
 typedef enum {
   CMD_INIT = 0x7F,

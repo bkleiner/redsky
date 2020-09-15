@@ -74,18 +74,6 @@ void uart_init() {
   U0CSR |= UxCSR_RX_ENABLE;
 }
 
-uint8_t uart_get_no_timeout() {
-  disable_inverter();
-
-  URX0IF = 0;
-  while (!URX0IF)
-    ;
-  uint8_t val = U0DBUF;
-  URX0IF = 0;
-
-  return val;
-}
-
 void uart_put(uint8_t val) {
   enable_inverter();
 

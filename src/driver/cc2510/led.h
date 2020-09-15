@@ -1,8 +1,6 @@
 #ifndef LED_H
 #define LED_H
 
-#include "driver.h"
-
 void led_init();
 
 void led_green_on();

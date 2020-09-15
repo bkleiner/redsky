@@ -53,6 +53,8 @@ void bootloader() {
   while (1) {
     led_green_toggle();
 
+    data = 0;
+
     switch (state) {
     default:
     case STATE_IDLE:
@@ -160,9 +162,10 @@ void bootloader() {
       }
       uart_put(RESPONSE_ACK);
 
-      flash_read(addr, buf, ((uint16_t)len) + 1);
+      const uint16_t full_len = ((uint16_t)len) + 1;
+      flash_read(addr, buf, full_len);
 
-      for (uint16_t i = 0; i < len + 1; i++) {
+      for (uint16_t i = 0; i < full_len; i++) {
         uart_put(buf[i]);
       }
       state = STATE_IDLE;
@@ -183,29 +186,64 @@ void bootloader() {
         break;
       }
 
-      if (!uart_get(&data, 0xFFFF)) {
-        state = STATE_ERROR;
-        break;
-      }
-
-      if (data != (len ^ 0xFF)) {
-        state = STATE_ERROR;
-        break;
-      }
-      uart_put(RESPONSE_ACK);
-
-      for (uint16_t i = 0; i < len + 1; i++) {
+      uint8_t chksum = len;
+      const uint16_t full_len = ((uint16_t)len) + 1;
+      for (uint16_t i = 0; i < full_len; i++) {
         if (!uart_get(&data, 0xFFFF)) {
           state = STATE_ERROR;
           break;
         }
         buf[i] = data;
+        chksum ^= data;
       }
       if (state == STATE_ERROR) {
         break;
       }
 
-      flash_write(addr, buf, ((uint16_t)len) + 1);
+      if (!uart_get(&data, 0xFFFF)) {
+        state = STATE_ERROR;
+        break;
+      }
+
+      if (data != chksum) {
+        state = STATE_ERROR;
+        break;
+      }
+
+      flash_write(addr, buf, full_len);
+      uart_put(RESPONSE_ACK);
+
+      state = STATE_IDLE;
+      break;
+    }
+
+    case (STATE_CMD + CMD_ERASE): {
+      if (!uart_get(&data, 0xFFFF)) {
+        state = STATE_ERROR;
+        break;
+      }
+
+      if (data == 0xFF) {
+        if (!uart_get(&data, 0xFFFF)) {
+          state = STATE_ERROR;
+          break;
+        }
+
+        if (data != 0x0) {
+          state = STATE_ERROR;
+          break;
+        }
+
+        for (uint16_t page = BOOTLOADER_PAGES; page < FLASH_PAGES; ++page) {
+          flash_erase(page);
+        }
+
+      } else {
+        state = STATE_ERROR;
+        break;
+      }
+
+      uart_put(RESPONSE_ACK);
       state = STATE_IDLE;
       break;
     }
@@ -218,7 +256,7 @@ void bootloader() {
   }
 }
 
-void main() {
+int main() {
   led_init();
 
   led_red_on();
@@ -229,7 +267,7 @@ void main() {
   led_green_on();
   for (uint8_t i = 0; i < 250; i++) {
     uint8_t magic = 0;
-    if (uart_get(&magic, 0x1FFF) && magic == CMD_INIT) {
+    if (uart_get(&magic, 0x3FFF) && magic == CMD_INIT) {
       uart_put(RESPONSE_ACK);
       bootloader();
     }
@@ -237,4 +275,8 @@ void main() {
   led_green_off();
 
   // jump to app
+  while (1)
+    ;
+
+  return 1;
 }

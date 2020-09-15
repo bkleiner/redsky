@@ -18,6 +18,10 @@ LDFLAGS = -static -lc -lnosys -lm \
 					-Wl,-L$(LD_SCRIPT_DIR),-T$(LD_SCRIPT_DIR)/STM32F103XB_FLASH.ld \
 					-Wl,-gc-sections
 
+BOOTLOADER_LDFLAGS = $(LDFLAGS)
+
+APP_LDFLAGS = $(LDFLAGS)
+
 DRIVER_CORE_SOURCES := $(DRIVER_DIR)/delay.c \
 											 $(DRIVER_DIR)/led.c \
 											 $(DRIVER_DIR)/uart.c \
