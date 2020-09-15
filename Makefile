@@ -15,8 +15,8 @@ CFLAGS += -DFLASH_SIZE=$(FLASH_SIZE) \
 					-DBOOTLOADER_SIZE=$(BOOTLOADER_SIZE) \
 					$(addprefix -I ,$(INCLUDE_DIRS)) 
 
-BOOTLOADER_SOURCES := src/bootloader/bootloader.c
-APP_SOURCES := src/app/app.c \
+BOOTLOADER_SOURCES += src/bootloader/bootloader.c
+APP_SOURCES += src/app/app.c \
 							 src/app/redpine.c \
 							 src/app/debug.c
 
@@ -37,7 +37,7 @@ $(BUILD_DIR)/%.$(OBJECT_EXT): %.c
 
 $(BUILD_DIR)/%.$(OBJECT_EXT): %.s
 	@mkdir -p $(@D)
-	$(CC) $(CFLAGS) -o $@ -c $<
+	$(AS) $(ASFLAGS) $@ $<
 
 $(BUILD_DIR)/src/app.$(TARGET_EXT): $(APP_OBJECTS) $(DRIVER_OBJECTS)
 	$(CC) $^ $(APP_LDFLAGS) $(CFLAGS) -o $@

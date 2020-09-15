@@ -1,4 +1,5 @@
 CC = arm-none-eabi-gcc
+AS = arm-none-eabi-gcc
 CP = arm-none-eabi-objcopy
 
 OBJECT_EXT = o
@@ -8,6 +9,8 @@ CFLAGS = -g -O1 -Wall -Wextra \
 				 -mthumb -mcpu=cortex-m3 \
 				 --specs=nano.specs --specs=nosys.specs \
 				 -DSTM32F103xB
+
+ASFLAGS = $(CFLAGS)
 
 CMSIS_DIR = third_party/STM32CubeF1/Drivers/CMSIS
 CMSIS_DEVICE_DIR = $(CMSIS_DIR)/Device/ST/STM32F1xx

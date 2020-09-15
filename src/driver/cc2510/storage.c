@@ -17,8 +17,8 @@ void storage_read(uint8_t *buf, uint16_t len) {
 }
 
 void storage_write(uint8_t *buf, uint16_t len) {
-  flash_erase((uint16_t)flash_storage_page);
-  flash_write((uint16_t)flash_storage_page, buf, len);
+  flash_erase(FLASH_PAGE_OFFSET / FLASH_PAGE_SIZE);
+  flash_write(FLASH_PAGE_OFFSET, buf, len);
 
   dma_init();
   radio_init();

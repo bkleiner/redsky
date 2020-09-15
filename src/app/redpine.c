@@ -349,7 +349,8 @@ void redpine_init() {
   redpine_configure();
 
   storage_read((uint8_t *)&bind, sizeof(bind_data));
-  if (bind.txid[0] == 0x0 && bind.txid[1] == 0x0) {
+  if ((bind.txid[0] == 0x0 && bind.txid[1] == 0x0) ||
+      (bind.txid[0] == 0xFF && bind.txid[1] == 0xFF)) {
     redpine_bind();
     storage_write((uint8_t *)&bind, sizeof(bind_data));
   }

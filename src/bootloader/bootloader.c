@@ -6,6 +6,10 @@
 #include "led.h"
 #include "uart.h"
 
+void jump_to(uint16_t addr) __naked {
+  __asm__("clr a\njmp @a+dptr");
+}
+
 uint8_t read_address(uint16_t *addr) {
   uint8_t checksum = 0;
   uint8_t data = 0;
@@ -172,6 +176,21 @@ void bootloader() {
       break;
     }
 
+    case (STATE_CMD + CMD_GO): {
+      uint16_t addr = 0;
+      if (!read_address(&addr)) {
+        state = STATE_ERROR;
+        break;
+      }
+      uart_put(RESPONSE_ACK);
+
+      jump_to(addr);
+
+      // should never reach
+      state = STATE_IDLE;
+      break;
+    }
+
     case (STATE_CMD + CMD_WRITE_MEMORY): {
       uint16_t addr = 0;
       if (!read_address(&addr)) {
@@ -256,7 +275,7 @@ void bootloader() {
   }
 }
 
-int main() {
+int bootloader_main() {
   led_init();
 
   led_red_on();
@@ -267,16 +286,13 @@ int main() {
   led_green_on();
   for (uint8_t i = 0; i < 250; i++) {
     uint8_t magic = 0;
-    if (uart_get(&magic, 0x3FFF) && magic == CMD_INIT) {
+    if (uart_get(&magic, 0xFFFF) && magic == CMD_INIT) {
       uart_put(RESPONSE_ACK);
       bootloader();
     }
   }
   led_green_off();
 
-  // jump to app
-  while (1)
-    ;
-
+  jump_to(BOOTLOADER_SIZE);
   return 1;
 }
