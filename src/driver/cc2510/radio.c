@@ -53,11 +53,16 @@ void radio_init() {
 
 #ifdef RF_LNA_PORT
   PORT2DIR(RF_LNA_PORT) |= (1 << RF_LNA_PIN);
+#ifdef USE_LNA
   lna_enable();
+#else
+  lna_disable();
+#endif
+#endif
+
 #ifdef RF_PA_PORT
   PORT2DIR(RF_PA_PORT) |= (1 << RF_PA_PIN);
   pa_disable();
-#endif
 #endif
 
 #ifdef RF_ANTENNA_SWITCH_PORT
@@ -112,10 +117,14 @@ void radio_switch_antenna() {
 
 void radio_enable_rx() {
 #ifdef RF_LNA_PORT
+#ifdef USE_LNA
   lna_enable();
+#else
+  lna_disable();
+#endif
+#endif
 #ifdef RF_PA_PORT
   pa_disable();
-#endif
 #endif
 
   if ((DMAARM & DMA_CH0) == 0) {
