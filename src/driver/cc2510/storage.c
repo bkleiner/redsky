@@ -17,6 +17,10 @@ void storage_read(uint8_t *buf, uint16_t len) {
 }
 
 void storage_write(uint8_t *buf, uint16_t len) {
+  if ((len & 0x1) == 0x1) {
+    len++;
+  }
+
   flash_erase(FLASH_PAGE_OFFSET / FLASH_PAGE_SIZE);
   flash_write(FLASH_PAGE_OFFSET, buf, len);
 
