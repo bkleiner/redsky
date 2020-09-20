@@ -85,13 +85,13 @@ static void redpine_configure() {
   radio_write_reg(BSCFG, 0x1C);
 
 #ifdef USE_LNA
-  radio_write_reg(AGCCTRL2, 0xff);
+  radio_write_reg(AGCCTRL2, 0b11111111);
 #else
-  radio_write_reg(AGCCTRL2, 0xC7);
+  radio_write_reg(AGCCTRL2, 0b11000111);
 #endif
 
-  radio_write_reg(AGCCTRL1, 0x00);
-  radio_write_reg(AGCCTRL0, 0xB0);
+  radio_write_reg(AGCCTRL1, 0b00000000);
+  radio_write_reg(AGCCTRL0, 0b10110000);
 
   radio_write_reg(FREND1, 0xB6);
   radio_write_reg(FREND0, 0x10);
@@ -364,9 +364,12 @@ void redpine_init() {
   delay_ms(100);
 }
 
-static inline void redpine_send_update(uint8_t packet_lost) {
+static void redpine_send_update(uint8_t packet_lost) {
   // set magic
-  packet[0] = 0x2A | (packet_lost == 1 ? 0b01000000 : 0x0);
+  packet[0] = 0x2A;
+  if (packet_lost == 1) {
+    packet[0] |= 0b01000000;
+  }
 
   // move rssi up
   packet[CHANNEL_START + 7] = packet[REDPINE_PACKET_SIZE];
