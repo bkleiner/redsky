@@ -405,12 +405,20 @@ void redpine_main() {
         //If you missed the last packet don't add the jitter
         timer_timeout_set_100us(looptime);
       }
+
+      redpine_increment_channel(1);
+
+      radio_enable_rx();
+      radio_strobe(RFST_SRX);
+
       if (!packet_received) {
         redpine_send_update(1);
         missing++;
         led_red_on();
         led_green_off();
       }
+      packet_received = 0;
+
       if (missing >= 5 && (missing % 5) == 0) {
         radio_switch_antenna();
       }
@@ -425,12 +433,7 @@ void redpine_main() {
         missing = 50;
         continue;
       }
-      packet_received = 0;
 
-      redpine_increment_channel(1);
-
-      radio_enable_rx();
-      radio_strobe(RFST_SRX);
       radio_handle_overflows();
     }
 
