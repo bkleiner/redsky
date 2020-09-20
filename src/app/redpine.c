@@ -84,7 +84,12 @@ static void redpine_configure() {
   radio_write_reg(FOCCFG, 0x1D);
   radio_write_reg(BSCFG, 0x1C);
 
+#ifdef USE_LNA
+  radio_write_reg(AGCCTRL2, 0xff);
+#else
   radio_write_reg(AGCCTRL2, 0xC7);
+#endif
+
   radio_write_reg(AGCCTRL1, 0x00);
   radio_write_reg(AGCCTRL0, 0xB0);
 
