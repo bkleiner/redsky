@@ -1,5 +1,6 @@
 #include "clock.h"
 
+#include "delay.h"
 #include "driver.h"
 #include "led.h"
 
@@ -8,6 +9,7 @@ void clock_init() {
   led_green_on();
 
   SLEEP &= ~OSC_PD_BIT;
+  delay_ms(100);
 
   while (!(SLEEP & XOSC_STABLE_BIT))
     ;

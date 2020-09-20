@@ -13,7 +13,7 @@ int main() {
   uart_dma_init();
   led_red_off();
 
-  delay_ms(250);
+  delay_ms(150);
   debug_print("booting...\r\n");
 
   led_red_on();
