@@ -12,38 +12,21 @@ void jump_to(uint16_t addr) __naked {
 
 uint8_t read_address(uint16_t *addr) {
   uint8_t checksum = 0;
-  uint8_t data = 0;
+  uint8_t data[5];
 
-  if (!uart_get(&data, 0xFFFF)) {
-    return 0;
-  }
-  checksum ^= data;
-
-  if (!uart_get(&data, 0xFFFF)) {
-    return 0;
-  }
-  checksum ^= data;
-
-  if (!uart_get(&data, 0xFFFF)) {
-    return 0;
-  }
-  *addr = data;
-  checksum ^= data;
-
-  if (!uart_get(&data, 0xFFFF)) {
-    return 0;
-  }
-  *addr = ((*addr) << 8) | data;
-  checksum ^= data;
-
-  if (!uart_get(&data, 0xFFFF)) {
+  if (!uart_read(data, 5, 0xFFFF)) {
     return 0;
   }
 
-  if (checksum != data) {
+  for (uint8_t i = 0; i < 4; i++) {
+    checksum ^= data[i];
+  }
+
+  if (checksum != data[4]) {
     return 0;
   }
 
+  *addr = ((data[2]) << 8) | data[3];
   return 1;
 }
 
@@ -169,9 +152,7 @@ void bootloader() {
       const uint16_t full_len = ((uint16_t)len) + 1;
       flash_read(addr, buf, full_len);
 
-      for (uint16_t i = 0; i < full_len; i++) {
-        uart_put(buf[i]);
-      }
+      uart_write(buf, full_len);
       state = STATE_IDLE;
       break;
     }
@@ -207,24 +188,15 @@ void bootloader() {
 
       uint8_t chksum = len;
       const uint16_t full_len = ((uint16_t)len) + 1;
-      for (uint16_t i = 0; i < full_len; i++) {
-        if (!uart_get(&data, 0xFFFF)) {
-          state = STATE_ERROR;
-          break;
-        }
-        buf[i] = data;
-        chksum ^= data;
-      }
-      if (state == STATE_ERROR) {
-        break;
-      }
-
-      if (!uart_get(&data, 0xFFFF)) {
+      if (!uart_read(buf, full_len + 1, 0xFFFF)) {
         state = STATE_ERROR;
         break;
       }
+      for (uint16_t i = 0; i < full_len; i++) {
+        chksum ^= buf[i];
+      }
 
-      if (data != chksum) {
+      if (buf[full_len] != chksum) {
         state = STATE_ERROR;
         break;
       }

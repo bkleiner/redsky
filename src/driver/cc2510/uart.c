@@ -75,30 +75,41 @@ void uart_init() {
 }
 
 void uart_put(uint8_t val) {
-  inverter_enable();
+  uart_write(&val, 1);
+}
 
+void uart_write(uint8_t *val, uint16_t size) {
+  inverter_enable();
   UTX0IF = 0;
-  U0DBUF = val;
-  while (!UTX0IF || !(U0CSR & UxCSR_TX_BYTE))
-    ;
-  U0CSR &= ~UxCSR_TX_BYTE;
-  UTX0IF = 0;
+
+  for (uint16_t i = 0; i < size; i++) {
+    U0DBUF = val[i];
+    while (!UTX0IF || !(U0CSR & UxCSR_TX_BYTE))
+      ;
+    U0CSR &= ~UxCSR_TX_BYTE;
+    UTX0IF = 0;
+  }
 }
 
 uint8_t uart_get(uint8_t *val, uint16_t timeout) {
+  return uart_read(val, 1, timeout);
+}
+
+uint8_t uart_read(uint8_t *val, uint16_t size, uint16_t timeout) {
   inverter_disable();
-
   URX0IF = 0;
 
-  while (!URX0IF && --timeout > 0)
-    ;
+  for (uint16_t i = 0; i < size; i++) {
+    while (!URX0IF && --timeout > 0)
+      ;
 
-  if (timeout == 0) {
-    return 0;
+    if (timeout == 0) {
+      return 0;
+    }
+
+    val[i] = U0DBUF;
+    URX0IF = 0;
   }
-
-  *val = U0DBUF;
-  URX0IF = 0;
 
   return 1;
 }
