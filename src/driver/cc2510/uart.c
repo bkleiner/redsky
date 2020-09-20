@@ -26,13 +26,13 @@ typedef union {
   };
 } uart_config_t;
 
-inline void enable_inverter() {
+inline void inverter_enable() {
   if (P1_0 != 1) {
     P1_0 = 1;
   }
 }
 
-inline void disable_inverter() {
+inline void inverter_disable() {
   if (P1_0 != 0) {
     P1_0 = 0;
   }
@@ -41,7 +41,7 @@ inline void disable_inverter() {
 void uart_init() {
   // enable inverter pin
   P1DIR |= (1 << 0);
-  enable_inverter();
+  inverter_enable();
 
   PERCFG &= ~(PERCFG_U0CFG);
   P0SEL |= PIN_3;
@@ -75,7 +75,7 @@ void uart_init() {
 }
 
 void uart_put(uint8_t val) {
-  enable_inverter();
+  inverter_enable();
 
   UTX0IF = 0;
   U0DBUF = val;
@@ -86,7 +86,7 @@ void uart_put(uint8_t val) {
 }
 
 uint8_t uart_get(uint8_t *val, uint16_t timeout) {
-  disable_inverter();
+  inverter_disable();
 
   URX0IF = 0;
 

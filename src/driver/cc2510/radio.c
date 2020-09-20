@@ -9,15 +9,20 @@
 #define RADIO_RX_BUF_SIZE REDPINE_PACKET_BUFFER_SIZE
 
 #ifdef RF_LNA_PORT
-#define RF_LNA_ENABLE() \
-  { PORT2BIT(RF_LNA_PORT, RF_LNA_PIN) = RF_LNA_ON_LEVEL; }
-#define RF_LNA_DISABLE() \
-  { PORT2BIT(RF_LNA_PORT, RF_LNA_PIN) = ~RF_LNA_ON_LEVEL; }
+static void lna_enable() {
+  PORT2BIT(RF_LNA_PORT, RF_LNA_PIN) = RF_LNA_ON_LEVEL;
+}
+
+static void lna_disable() {
+  PORT2BIT(RF_LNA_PORT, RF_LNA_PIN) = ~RF_LNA_ON_LEVEL;
+}
 #ifdef RF_PA_PORT
-#define RF_PA_ENABLE() \
-  { PORT2BIT(RF_PA_PORT, RF_PA_PIN) = RF_PA_ON_LEVEL; }
-#define RF_PA_DISABLE() \
-  { PORT2BIT(RF_PA_PORT, RF_PA_PIN) = ~RF_PA_ON_LEVEL; }
+static void pa_enable() {
+  PORT2BIT(RF_PA_PORT, RF_PA_PIN) = RF_PA_ON_LEVEL;
+}
+static void pa_disable() {
+  PORT2BIT(RF_PA_PORT, RF_PA_PIN) = ~RF_PA_ON_LEVEL;
+}
 #endif
 #endif
 
@@ -48,10 +53,10 @@ void radio_init() {
 
 #ifdef RF_LNA_PORT
   PORT2DIR(RF_LNA_PORT) |= (1 << RF_LNA_PIN);
-  RF_LNA_ENABLE();
+  lna_enable();
 #ifdef RF_PA_PORT
   PORT2DIR(RF_PA_PORT) |= (1 << RF_PA_PIN);
-  RF_PA_DISABLE();
+  pa_disable();
 #endif
 #endif
 
@@ -106,6 +111,13 @@ void radio_switch_antenna() {
 }
 
 void radio_enable_rx() {
+#ifdef RF_LNA_PORT
+  lna_enable();
+#ifdef RF_PA_PORT
+  pa_disable();
+#endif
+#endif
+
   if ((DMAARM & DMA_CH0) == 0) {
     DMAARM |= DMA_CH0;
   }
