@@ -86,12 +86,13 @@ static void redpine_configure() {
 
 #ifdef USE_LNA
   radio_write_reg(AGCCTRL2, 0b11111111);
+  radio_write_reg(AGCCTRL1, 0b01000111);
+  radio_write_reg(AGCCTRL0, 0b11110001);
 #else
   radio_write_reg(AGCCTRL2, 0b11000111);
-#endif
-
   radio_write_reg(AGCCTRL1, 0b00000000);
   radio_write_reg(AGCCTRL0, 0b10110000);
+#endif
 
   radio_write_reg(FREND1, 0xB6);
   radio_write_reg(FREND0, 0x10);
