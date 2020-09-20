@@ -36,9 +36,9 @@ void flash_erase(uint16_t page) __critical {
 }
 
 void flash_write(uint16_t offset, uint8_t *buf, uint16_t len) __critical {
-  SET_WORD(flash_dma_desc.SRCADDRH, flash_dma_desc.SRCADDRL, buf);
-  SET_WORD(flash_dma_desc.LENH, flash_dma_desc.LENL, len);
-  SET_WORD(flash_dma_desc.DESTADDRH, flash_dma_desc.DESTADDRL, &X_FWDATA);
+  WRITE_WORD(flash_dma_desc.SRCADDRH, flash_dma_desc.SRCADDRL, buf);
+  WRITE_WORD(flash_dma_desc.LENH, flash_dma_desc.LENL, len);
+  WRITE_WORD(flash_dma_desc.DESTADDRH, flash_dma_desc.DESTADDRL, &X_FWDATA);
 
   flash_dma_desc.VLEN = 0x0;
   flash_dma_desc.WORDSIZE = 0x0;
@@ -52,13 +52,13 @@ void flash_write(uint16_t offset, uint8_t *buf, uint16_t len) __critical {
   flash_dma_desc.M8 = 0x0;
   flash_dma_desc.PRIORITY = 0x2;
 
-  SET_WORD(DMA0CFGH, DMA0CFGL, &flash_dma_desc);
+  WRITE_WORD(DMA0CFGH, DMA0CFGL, &flash_dma_desc);
 
   while (FCTL & FCTL_BUSY)
     ;
 
   FWT = 0x22;
-  SET_WORD(FADDRH, FADDRL, offset >> 1);
+  WRITE_WORD(FADDRH, FADDRL, offset >> 1);
 
   DMAIRQ = 0;
   DMAARM = 0x80 | 0x1F;

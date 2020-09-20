@@ -6,8 +6,15 @@
 
 #define REDPINE_PACKET_BUFFER_SIZE REDPINE_PACKET_SIZE_W_ADDONS
 
-void redpine_init();
+/* Repine Packet layout
+  0x00: PACKET_SIZE - 1
+  0x01: ADDR_0
+  0x02: ADDR_1
+  0x03-0x09: CHANNEL_DATA
+  0x0A: LOOPTIME
+*/
 
+void redpine_init();
 void redpine_main();
 
 #endif

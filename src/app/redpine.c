@@ -364,15 +364,18 @@ void redpine_init() {
   delay_ms(100);
 }
 
-static inline void redpine_send_update() {
+static inline void redpine_send_update(uint8_t packet_lost) {
+  // set magic
+  packet[0] = 0x2A | (packet_lost == 1 ? 0b01000000 : 0x0);
+
   // move rssi up
   packet[CHANNEL_START + 7] = packet[REDPINE_PACKET_SIZE];
 
   uint16_t crc = crc_compute((uint8_t *)packet, REDPINE_PACKET_SIZE);
-  SET_WORD(packet[1], packet[2], crc);
+  WRITE_WORD(packet[1], packet[2], crc);
 
   // drop size, lqi & rssi from packet
-  uart_dma_start((uint8_t *)packet + 1, REDPINE_PACKET_SIZE - 1);
+  uart_dma_start((uint8_t *)packet, REDPINE_PACKET_SIZE);
 }
 
 void redpine_main() {
@@ -399,13 +402,8 @@ void redpine_main() {
         //If you missed the last packet don't add the jitter
         timer_timeout_set_100us(looptime);
       }
-
-      redpine_increment_channel(1);
-
-      radio_enable_rx();
-      radio_strobe(RFST_SRX);
-
       if (!packet_received) {
+        redpine_send_update(1);
         missing++;
         led_red_on();
         led_green_off();
@@ -426,6 +424,10 @@ void redpine_main() {
       }
       packet_received = 0;
 
+      redpine_increment_channel(1);
+
+      radio_enable_rx();
+      radio_strobe(RFST_SRX);
       radio_handle_overflows();
     }
 
@@ -445,7 +447,7 @@ void redpine_main() {
     led_green_on();
 
     looptime = packet[CHANNEL_START + 7];
-    redpine_send_update();
+    redpine_send_update(0);
     timer_timeout_set_100us(0);
 
     missing = 0;
