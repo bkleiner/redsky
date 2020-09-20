@@ -1,5 +1,6 @@
 BUILD_DIR := build
 TARGET    ?= d8r
+MODE 			?= release
 
 BOOTLOADER_SIZE := 0x1000
 
