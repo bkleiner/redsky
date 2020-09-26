@@ -2,7 +2,7 @@ BUILD_DIR := build
 TARGET    ?= d8r
 MODE 			?= release
 
-BOOTLOADER_SIZE := 0x1000
+BOOTLOADER_SIZE := 0x2000
 
 include board/$(TARGET)/board.mk
 include $(DRIVER_DIR)/driver.mk
@@ -17,6 +17,7 @@ CFLAGS += -DFLASH_SIZE=$(FLASH_SIZE) \
 					$(addprefix -I ,$(INCLUDE_DIRS)) 
 
 BOOTLOADER_SOURCES += src/bootloader/bootloader.c
+BLINKY_SOURCES += src/blinky/blinky.c
 APP_SOURCES += src/app/app.c \
 							 src/app/redpine.c \
 							 src/app/debug.c
@@ -25,11 +26,13 @@ DRIVER_CORE_OBJECTS=$(addsuffix .$(OBJECT_EXT),$(addprefix $(BUILD_DIR)/,$(basen
 DRIVER_OBJECTS=$(addsuffix .$(OBJECT_EXT),$(addprefix $(BUILD_DIR)/,$(basename $(DRIVER_SOURCES))))
 
 BOOTLOADER_OBJECTS=$(addsuffix .$(OBJECT_EXT),$(addprefix $(BUILD_DIR)/,$(basename $(BOOTLOADER_SOURCES))))
+BLINKY_OBJECTS=$(addsuffix .$(OBJECT_EXT),$(addprefix $(BUILD_DIR)/,$(basename $(BLINKY_SOURCES))))
 APP_OBJECTS=$(addsuffix .$(OBJECT_EXT),$(addprefix $(BUILD_DIR)/,$(basename $(APP_SOURCES))))
 
-all: bootloader app
+all: bootloader blinky app
 
 bootloader: $(BUILD_DIR)/src/bootloader.bin
+blinky: $(BUILD_DIR)/src/blinky.bin
 app: $(BUILD_DIR)/src/app.bin
 
 $(BUILD_DIR)/%.$(OBJECT_EXT): %.c
@@ -50,6 +53,12 @@ $(BUILD_DIR)/src/bootloader.$(TARGET_EXT): $(BOOTLOADER_OBJECTS) $(DRIVER_CORE_O
 	$(CC) $^ $(BOOTLOADER_LDFLAGS) $(CFLAGS) -o $@
 
 $(BUILD_DIR)/src/bootloader.bin: $(BUILD_DIR)/src/bootloader.$(TARGET_EXT)
+	$(CP) $(CP_FLAGS) -Obinary $< $@
+
+$(BUILD_DIR)/src/blinky.$(TARGET_EXT): $(BLINKY_OBJECTS) $(DRIVER_CORE_OBJECTS)
+	$(CC) $^ $(APP_LDFLAGS) $(CFLAGS) -o $@
+
+$(BUILD_DIR)/src/blinky.bin: $(BUILD_DIR)/src/blinky.$(TARGET_EXT)
 	$(CP) $(CP_FLAGS) -Obinary $< $@
 
 clean:
