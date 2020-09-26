@@ -8,14 +8,18 @@
 
 #define RADIO_RX_BUF_SIZE REDPINE_PACKET_BUFFER_SIZE
 
-#ifdef RF_LNA_PORT
 static void lna_enable() {
+#ifdef RF_LNA_PORT
   PORT2BIT(RF_LNA_PORT, RF_LNA_PIN) = RF_LNA_ON_LEVEL;
+#endif
 }
 
 static void lna_disable() {
+#ifdef RF_LNA_PORT
   PORT2BIT(RF_LNA_PORT, RF_LNA_PIN) = ~RF_LNA_ON_LEVEL;
+#endif
 }
+
 #ifdef RF_PA_PORT
 static void pa_enable() {
   PORT2BIT(RF_PA_PORT, RF_PA_PIN) = RF_PA_ON_LEVEL;
@@ -23,7 +27,6 @@ static void pa_enable() {
 static void pa_disable() {
   PORT2BIT(RF_PA_PORT, RF_PA_PIN) = ~RF_PA_ON_LEVEL;
 }
-#endif
 #endif
 
 volatile __xdata uint8_t packet[RADIO_RX_BUF_SIZE];
