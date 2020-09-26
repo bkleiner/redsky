@@ -48,6 +48,6 @@ DRIVER_SOURCES := $(DRIVER_CORE_SOURCES) \
 									$(DRIVER_DIR)/uart_dma.c \
 									$(DRIVER_DIR)/crc.c
 
-BOOTLOADER_SOURCES := $(DRIVER_DIR)/startup.asm
+BOOTLOADER_SOURCES := $(DRIVER_DIR)/startup.s
 
 DRIVER_INCLUDE_DIRS := $(DRIVER_DIR)
