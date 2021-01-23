@@ -2,8 +2,7 @@
 #define DRIVER_H
 
 #include <stdint.h>
-
-#include <stm32f1xx.h>
+#include <stm32f0xx.h>
 
 #include "config.h"
 

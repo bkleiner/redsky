@@ -8,15 +8,15 @@ TARGET_EXT = elf
 CFLAGS = -g -O1 -Wall -Wextra \
 				 -mthumb -mcpu=cortex-m3 \
 				 --specs=nano.specs --specs=nosys.specs \
-				 -DSTM32F103xB
+				 -DSTM32F031x6
 
 ASFLAGS = $(CFLAGS)
 
-CMSIS_DIR = third_party/STM32CubeF1/Drivers/CMSIS
-CMSIS_DEVICE_DIR = $(CMSIS_DIR)/Device/ST/STM32F1xx
+CMSIS_DIR = third_party/STM32CubeF0/Drivers/CMSIS
+CMSIS_DEVICE_DIR = $(CMSIS_DIR)/Device/ST/STM32F0xx
 
 LDFLAGS = -static -lc -lnosys -lm \
-					-Wl,-L$(DRIVER_DIR),-T$(DRIVER_DIR)/STM32F103XB_FLASH.ld \
+					-Wl,-L$(DRIVER_DIR),-T$(DRIVER_DIR)/STM32F031K6Tx_FLASH.ld \
 					-Wl,-gc-sections
 
 BOOTLOADER_LDFLAGS = $(LDFLAGS)
@@ -28,8 +28,8 @@ DRIVER_CORE_SOURCES := $(DRIVER_DIR)/delay.c \
 											 $(DRIVER_DIR)/uart.c \
 											 $(DRIVER_DIR)/clock.c \
 											 $(DRIVER_DIR)/gpio.c \
-											 $(CMSIS_DEVICE_DIR)/Source/Templates/gcc/startup_stm32f103xb.s \
-											 $(DRIVER_DIR)/system_stm32f1xx.c
+											 $(CMSIS_DEVICE_DIR)/Source/Templates/gcc/startup_stm32f031x6.s \
+											 $(DRIVER_DIR)/system_stm32f0xx.c
 
 DRIVER_SOURCES := $(DRIVER_CORE_SOURCES) \
 									$(DRIVER_DIR)/dma.c \

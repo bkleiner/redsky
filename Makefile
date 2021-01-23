@@ -41,6 +41,10 @@ $(BUILD_DIR)/%.$(OBJECT_EXT): %.c
 
 $(BUILD_DIR)/%.$(OBJECT_EXT): %.s
 	@mkdir -p $(@D)
+	$(AS) $(ASFLAGS) -o $@ -c $<
+
+$(BUILD_DIR)/%.$(OBJECT_EXT): %.asm
+	@mkdir -p $(@D)
 	$(AS) $(ASFLAGS) $@ $<
 
 $(BUILD_DIR)/src/app.$(TARGET_EXT): $(APP_OBJECTS) $(DRIVER_OBJECTS)
