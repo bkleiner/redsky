@@ -2,3 +2,6 @@
 /build
 /tmp
 /tool
+*.jpg~
+*.kra
+*.kra~
