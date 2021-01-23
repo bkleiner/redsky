@@ -1,0 +1,6 @@
+[submodule "third_party/STM32CubeF0"]
+	path = third_party/STM32CubeF0
+	url = https://github.com/STMicroelectronics/STM32CubeF0
+[submodule "third_party/STM32CubeF1"]
+	path = third_party/STM32CubeF1
+	url = https://github.com/STMicroelectronics/STM32CubeF1
