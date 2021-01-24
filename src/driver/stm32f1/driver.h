@@ -2,21 +2,13 @@
 #define DRIVER_H
 
 #include <stdint.h>
-
 #include <stm32f1xx.h>
 
 #include "config.h"
+#include "util.h"
 
 #define EXT_MEMORY
 
 extern uint32_t SystemCoreClock;
-
-#define HI(a) (uint8_t)((uint16_t)(a) >> 8)
-#define LO(a) (uint8_t)(((uint16_t)a) & 0xFF)
-#define SET_WORD(H, L, val) \
-  {                         \
-    (H) = HI(val);          \
-    (L) = LO(val);          \
-  }
 
 #endif

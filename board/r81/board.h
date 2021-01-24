@@ -1,7 +1,10 @@
 #ifndef BOARD_H
 #define BOARD_H
 
+#define LED_RED_PIN PF0
+
 #define UART_TX PA9
+#define UART_RX PA10
 
 #define CC2500_SCK_PIN PB3
 #define CC2500_MISO_PIN PB4

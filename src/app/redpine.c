@@ -8,6 +8,7 @@
 #include "radio.h"
 #include "storage.h"
 #include "timer.h"
+#include "util.h"
 
 #define HOPTABLE_SIZE 49
 #define MAX_HOPTABLE_SIZE 50

@@ -10,7 +10,8 @@ include $(DRIVER_DIR)/driver.mk
 INCLUDE_DIRS := $(BOARD_DIR) \
 								$(DRIVER_INCLUDE_DIRS) \
 								src/app \
-								src/config
+								src/config \
+								src/util
 
 CFLAGS += -DFLASH_SIZE=$(FLASH_SIZE) \
 					-DBOOTLOADER_SIZE=$(BOOTLOADER_SIZE) \
