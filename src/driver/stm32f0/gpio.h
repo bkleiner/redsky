@@ -25,6 +25,7 @@ enum gpio_mode {
 };
 
 void gpio_config(gpio_pin_def_t pin, uint32_t mode);
+void gpio_config_af(gpio_pin_def_t pin, uint8_t af);
 
 void gpio_set(gpio_pin_def_t pin);
 void gpio_reset(gpio_pin_def_t pin);

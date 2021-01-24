@@ -7,7 +7,6 @@
 #undef MAKE_PIN_DEF
 
 void gpio_config(gpio_pin_def_t pin, uint32_t mode) {
-
   uint8_t mode_bit = 0;
   if ((mode & GPIO_AF) != 0) {
     mode_bit = 0b10;
@@ -28,6 +27,16 @@ void gpio_config(gpio_pin_def_t pin, uint32_t mode) {
 
   MODIFY_REG(pin.port->OSPEEDR, (0b11 << (pin.index * 2)), 0b11 << (pin.index * 2));
   MODIFY_REG(pin.port->PUPDR, (0b11 << (pin.index * 2)), 0b00 << (pin.index * 2));
+}
+
+void gpio_config_af(gpio_pin_def_t pin, uint8_t af) {
+  if (pin.index <= 7) {
+    uint8_t offset = pin.index * 4;
+    MODIFY_REG(pin.port->AFR[0], (0b1111 << offset), af << offset);
+  } else {
+    uint8_t offset = (pin.index - 8) * 4;
+    MODIFY_REG(pin.port->AFR[1], (0b1111 << offset), af << offset);
+  }
 }
 
 void gpio_set(gpio_pin_def_t pin) {
