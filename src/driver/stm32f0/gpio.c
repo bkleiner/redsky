@@ -25,8 +25,15 @@ void gpio_config(gpio_pin_def_t pin, uint32_t mode) {
   }
   MODIFY_REG(pin.port->OTYPER, (0b1 << (pin.index)), cnf_bit << (pin.index));
 
+  uint8_t pull_bit = 0;
+  if ((mode & GPIO_PULL_UP) != 0) {
+    pull_bit = 0b01;
+  } else if ((mode & GPIO_PULL_DOWN) != 0) {
+    pull_bit = 0b10;
+  }
+  MODIFY_REG(pin.port->PUPDR, (0b11 << (pin.index * 2)), pull_bit << (pin.index * 2));
+
   MODIFY_REG(pin.port->OSPEEDR, (0b11 << (pin.index * 2)), 0b11 << (pin.index * 2));
-  MODIFY_REG(pin.port->PUPDR, (0b11 << (pin.index * 2)), 0b00 << (pin.index * 2));
 }
 
 void gpio_config_af(gpio_pin_def_t pin, uint8_t af) {

@@ -22,6 +22,9 @@ enum gpio_mode {
   GPIO_OD = (1 << 4),
 
   GPIO_AF = (1 << 5),
+
+  GPIO_PULL_DOWN = (1 << 6),
+  GPIO_PULL_UP = (1 << 7),
 };
 
 void gpio_config(gpio_pin_def_t pin, uint32_t mode);
