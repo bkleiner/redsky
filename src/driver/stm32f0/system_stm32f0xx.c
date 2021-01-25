@@ -138,6 +138,34 @@ const uint8_t APBPrescTable[8] = {0, 0, 0, 0, 1, 2, 3, 4};
   * @{
   */
 
+void set_system_clock() {
+  if ((RCC->CFGR & RCC_CFGR_SWS) == RCC_CFGR_SWS_PLL) {
+    RCC->CFGR &= (uint32_t)(~RCC_CFGR_SW);
+    while ((RCC->CFGR & RCC_CFGR_SWS) != RCC_CFGR_SWS_HSI)
+      ;
+  }
+
+  RCC->CR &= (uint32_t)(~RCC_CR_PLLON);
+  while ((RCC->CR & RCC_CR_PLLRDY) != 0)
+    ;
+
+  FLASH->ACR = FLASH_ACR_PRFTBE | FLASH_ACR_LATENCY;
+
+  RCC->CFGR = (RCC->CFGR & (~RCC_CFGR_PLLMUL)) | (RCC_CFGR_PLLMUL12);
+  RCC->CFGR2 = (RCC->CFGR2 & (~RCC_CFGR2_PREDIV_DIV1)) | RCC_CFGR2_PREDIV_DIV1;
+  RCC->CFGR = (RCC->CFGR & (~RCC_CFGR_PLLMUL)) | (RCC_CFGR_PLLMUL12);
+  RCC->CFGR = (RCC->CFGR & (~RCC_CFGR_PPRE)) | (RCC_CFGR_PPRE_DIV1);
+  RCC->CFGR = (RCC->CFGR & (~RCC_CFGR_PLLSRC)) | (RCC_CFGR_PLLSRC_HSI_DIV2);
+
+  RCC->CR |= RCC_CR_PLLON;
+  while ((RCC->CR & RCC_CR_PLLRDY) == 0)
+    ;
+
+  RCC->CFGR |= (uint32_t)(RCC_CFGR_SW_PLL);
+  while ((RCC->CFGR & RCC_CFGR_SWS) != RCC_CFGR_SWS_PLL)
+    ;
+}
+
 /**
   * @brief  Setup the microcontroller system.
   *         Initialize the default HSI clock source, vector table location and the PLL configuration is reset.
@@ -201,6 +229,8 @@ void SystemInit(void) {
 
   /* Disable all interrupts */
   RCC->CIR = 0x00000000U;
+
+  set_system_clock();
 }
 
 /**
