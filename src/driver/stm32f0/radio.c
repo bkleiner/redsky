@@ -187,7 +187,7 @@ static void radio_start_read_fifo() {
 
   dma_transfer_done = 0;
   dma_buffer[0] = FIFO | READ_FLAG | BURST_FLAG;
-  memset(dma_buffer + 1, 0xFF, len);
+  memset((uint8_t *)dma_buffer + 1, 0xFF, len);
 
   SPI1->CR1 &= ~SPI_CR1_SPE;
 
@@ -227,7 +227,7 @@ void DMA1_Channel2_3_IRQHandler() {
 
     radio_csn_disable();
 
-    memcpy(packet, dma_buffer + 1, RADIO_RX_BUF_SIZE);
+    memcpy((uint8_t *)packet, (uint8_t *)dma_buffer + 1, RADIO_RX_BUF_SIZE);
 
     dma_transfer_done = 1;
     received_packet = 1;
