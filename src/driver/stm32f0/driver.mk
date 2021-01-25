@@ -6,7 +6,8 @@ OBJECT_EXT = o
 TARGET_EXT = elf
 
 CFLAGS = -g -O1 -Wall -Wextra \
-				 -mthumb -mcpu=cortex-m0 \
+				 -mlittle-endian -mcpu=cortex-m0 \
+				 -mthumb -mfloat-abi=soft \
 				 --specs=nano.specs --specs=nosys.specs \
 				 -DSTM32F031x6
 
