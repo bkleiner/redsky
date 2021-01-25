@@ -1,10 +1,10 @@
 #include "app.h"
 
 int main() {
+  clock_init();
   led_init();
 
   led_red_on();
-  clock_init();
   timer_init();
   dma_init();
   led_red_off();
