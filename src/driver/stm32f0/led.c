@@ -33,13 +33,21 @@ void led_green_init() {
 
 void led_red_on() {
 #if defined(LED_RED_PIN)
+#if defined(LED_RED_INVERT)
+  gpio_reset(LED_RED_PIN);
+#else
   gpio_set(LED_RED_PIN);
+#endif
 #endif
 }
 
 void led_red_off() {
 #if defined(LED_RED_PIN)
+#if defined(LED_RED_INVERT)
+  gpio_set(LED_RED_PIN);
+#else
   gpio_reset(LED_RED_PIN);
+#endif
 #endif
 }
 
