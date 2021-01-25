@@ -377,7 +377,7 @@ static void redpine_send_update(uint8_t packet_lost) {
   }
 
   // move rssi up
-  packet[CHANNEL_START + 7] = packet[REDPINE_PACKET_SIZE];
+  packet[CHANNEL_START + 7] = packet[REDPINE_PACKET_SIZE + 1] & 0x7f;
 
   uint16_t crc = crc_compute((uint8_t *)packet, REDPINE_PACKET_SIZE);
   WRITE_WORD(packet[1], packet[2], crc);
