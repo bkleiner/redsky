@@ -22,14 +22,12 @@ uint8_t uart_dma_start(uint8_t *data, uint16_t len) {
   }
 
   dma_transfer_done = 0;
-
-  dma_buf[0] = len + 1;
-  memcpy(dma_buf + 1, data, len);
+  memcpy(dma_buf, data, len);
 
   DMA1_Channel4->CCR |= DMA_CCR_PL_0 | DMA_CCR_MINC | DMA_CCR_DIR | DMA_CCR_TCIE;
   DMA1_Channel4->CPAR = (uint32_t)(&USART1->TDR);
   DMA1_Channel4->CMAR = (uint32_t)(&dma_buf);
-  DMA1_Channel4->CNDTR = len + 1;
+  DMA1_Channel4->CNDTR = len;
   DMA1_Channel4->CCR |= DMA_CCR_EN;
 
   USART1->CR3 |= USART_CR3_DMAT;
