@@ -14,6 +14,7 @@
 #define CC2500_CSN_PIN PB0
 #define CC2500_GDO0_PIN PB1
 
+#define USE_LNA
 #define RF_PA_PIN PA1
 #define RF_LNA_PIN PA2
 #define RF_BYPASS_PIN PA3
