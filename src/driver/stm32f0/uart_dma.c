@@ -3,10 +3,10 @@
 #include <string.h>
 
 void uart_dma_init() {
-  uart_init();
-
   // remapo uart1 dma to channel 4/5
   MODIFY_REG(SYSCFG->CFGR1, 0b11 << SYSCFG_CFGR1_USART1TX_DMA_RMP_Pos, 0b11 << SYSCFG_CFGR1_USART1TX_DMA_RMP_Pos);
+
+  uart_init();
 
   NVIC_EnableIRQ(DMA1_Channel4_5_IRQn);
   DMA1->IFCR |= DMA_ISR_TCIF4;
