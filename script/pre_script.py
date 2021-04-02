@@ -1,7 +1,8 @@
 Import("env")
 
 exclude = [
-  "system_stm32f0xx.c"
+  "system_stm32f0xx.c",
+  "system_stm32f1xx.c"
 ]
 
 def replace_system(node):
