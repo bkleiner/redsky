@@ -1,4 +1,0 @@
-FLASH_SIZE=0x10000
-
-BOARD_DIR=board/r81
-DRIVER_DIR=src/driver/stm32f0
