@@ -3,5 +3,5 @@
 # cc2510f32 has 32k flash -> 0x8000
 FLASH_SIZE=0x4000
 
-BOARD_DIR=board/xmp
+BOARD_DIR=src/target/xmp
 DRIVER_DIR=src/driver/cc2510

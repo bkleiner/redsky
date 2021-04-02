@@ -1,10 +1,10 @@
 BUILD_DIR := build
-TARGET    ?= d8r
+TARGET    ?= xm
 MODE 			?= release
 
 BOOTLOADER_SIZE := 0x2000
 
-include board/$(TARGET)/board.mk
+include src/target/$(TARGET)/board.mk
 include $(DRIVER_DIR)/driver.mk
 
 INCLUDE_DIRS := $(BOARD_DIR) \
