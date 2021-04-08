@@ -3,10 +3,12 @@
 #include "driver.h"
 
 void timer_init() {
-  SysTick_Config(SystemCoreClock / 10000);
+  SysTick_Config(SystemCoreClock / 10000L);
+
+  NVIC_SetPriority(SysTick_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(), 0, 0));
 }
 
-static volatile uint16_t timeout_counter = 0;
+static volatile uint32_t timeout_counter = 0;
 
 void timer_timeout_set_100us(uint32_t us100) {
   timeout_counter = us100;
