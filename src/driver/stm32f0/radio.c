@@ -111,7 +111,7 @@ static uint8_t radio_transfer(uint8_t val) {
 
 uint8_t radio_write_reg(uint8_t reg, uint8_t val) {
   while (!dma_transfer_done)
-    ;
+    __WFI();
 
   radio_csn_enable();
   radio_transfer(reg | WRITE_FLAG);
@@ -126,7 +126,7 @@ uint8_t radio_read_reg(uint8_t reg) {
 
 void radio_strobe(uint8_t val) {
   while (!dma_transfer_done)
-    ;
+    __WFI();
 
   radio_csn_enable();
   radio_transfer(val);
@@ -135,7 +135,7 @@ void radio_strobe(uint8_t val) {
 
 static inline uint8_t radio_read_multi(uint8_t reg, uint8_t *result, uint8_t len) {
   while (!dma_transfer_done)
-    ;
+    __WFI();
 
   radio_csn_enable();
 
@@ -207,8 +207,7 @@ static void radio_start_read_fifo() {
   radio_csn_enable();
   DMA1_Channel2->CCR |= DMA_CCR_EN;
   DMA1_Channel3->CCR |= DMA_CCR_EN;
-  SPI1->CR2 &= ~SPI_CR2_FRXTH;
-  SPI1->CR2 |= SPI_CR2_TXDMAEN | SPI_CR2_RXDMAEN;
+  SPI1->CR2 |= SPI_CR2_FRXTH | SPI_CR2_TXDMAEN | SPI_CR2_RXDMAEN;
   SPI1->CR1 |= SPI_CR1_SPE;
 }
 
