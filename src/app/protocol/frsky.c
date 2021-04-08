@@ -11,19 +11,19 @@
 #include "timer.h"
 #include "util.h"
 
+#define DEFAULT_PACKET_TIME 90
+#define LOST_PACKET_TIME 5000
+#define PACKET_JITTER_TIME 5
+
 #define MAX_BIND_PACKET_COUNT 10
-
-#define DEFAULT_PACKET_TIME_US 50000
-
-#define CHANNEL_START 3
-
 #define HOPDATA_RECEIVE_DONE ((1 << (MAX_BIND_PACKET_COUNT)) - 1)
 
-#define FRSKY_VALID_PACKET_CRC(_b) (_b[FRSKY_PACKET_SIZE_W_ADDONS - 1] & (1 << 7))
-#define FRSKY_VALID_PACKET_BIND(_b) ((_b[2] == 0x01) && FRSKY_VALID_PACKET_CRC(_b))
-
+#define FRSKY_VALID_FRAMELENGTH(_b) (_b[0] == 0x11)
+#define FRSKY_VALID_CRC(_b) (_b[19] & 0x80)
 #define FRSKY_VALID_TXID(_b) ((_b[1] == bind.txid[0]) && (_b[2] == bind.txid[1]))
-#define FRSKY_VALID_PACKET(_b) ((_b[0] == 10) && FRSKY_VALID_TXID(_b) && FRSKY_VALID_PACKET_CRC(_b))
+
+#define FRSKY_VALID_PACKET_BIND(_b) (FRSKY_VALID_FRAMELENGTH(_b) && FRSKY_VALID_CRC(_b) && (_b[2] == 0x01))
+#define FRSKY_VALID_PACKET(_b) (FRSKY_VALID_FRAMELENGTH(_b) && FRSKY_VALID_CRC(_b) && FRSKY_VALID_TXID(_b))
 
 typedef enum {
   TUNE_INIT,
@@ -48,8 +48,8 @@ static void frsky_configure() {
   radio_io_config();
 
   radio_write_reg(PKTLEN, FRSKY_PACKET_SIZE);
-  radio_write_reg(PKTCTRL1, 0x0C);
-  radio_write_reg(PKTCTRL0, 0x04);
+  radio_write_reg(PKTCTRL1, 0x04);
+  radio_write_reg(PKTCTRL0, 0x05);
   radio_write_reg(PA_TABLE0, 0xFF);
 
   radio_write_reg(FSCTRL1, 0x08);
@@ -94,70 +94,12 @@ static void frsky_configure() {
   radio_write_reg(ADDR, 0x00);
 }
 
-static void frsky_tune_freq(int8_t freq) {
-  radio_strobe(RFST_SIDLE);
-  radio_write_reg(FSCTRL0, freq);
-  delay_ms(1);
-  radio_strobe(RFST_SRX);
-}
-
-static void frsky_tune_channel(uint8_t ch) {
-  radio_strobe(RFST_SIDLE);
-  radio_write_reg(CHANNR, ch);
-  radio_strobe(RFST_SCAL);
-
-  while (radio_read_reg(MARCSTATE) != 0x01)
-    ;
-}
-
-static void frsky_enter_rxmode(uint8_t channel) {
-  radio_strobe(RFST_SIDLE);
-
-  frsky_tune_channel(channel);
-  radio_enable_rx();
-
-  radio_strobe(RFST_SRX);
-}
-
-static void frsky_set_channel(uint8_t hop_index) {
-  uint8_t ch = bind.hop_table[hop_index];
-
-  radio_strobe(RFST_SIDLE);
-
-  radio_write_reg(FSCAL3, fscal3);
-  radio_write_reg(FSCAL2, fscal2);
-  radio_write_reg(FSCAL1, fscal1_table[hop_index]);
-
-  radio_write_reg(CHANNR, ch);
-}
-
-static void frsky_increment_channel(int8_t cnt) {
-  int8_t next = current_channel_index + cnt;
-
-  // convert to a safe unsigned number:
-  if (next < 0) {
-    next += HOPTABLE_SIZE;
-  }
-  if (next >= HOPTABLE_SIZE) {
-    next -= HOPTABLE_SIZE;
-  }
-
-  current_channel_index = next;
-  frsky_set_channel(current_channel_index);
-}
-
 static void frsky_tune() {
   debug_print("frsky_tune\r\n");
 
   bind.freq_offset = 0;
 
-  radio_write_reg(FOCCFG, 0x14);
-
-  radio_write_reg(FSCTRL0, (uint8_t)bind.freq_offset);
-  radio_write_reg(PKTCTRL1, 0x0C);
-  radio_write_reg(MCSM0, 0x8);
-
-  frsky_enter_rxmode(0);
+  protocol_enter_rxmode(0);
 
   int8_t fscal0_min = 127;
   int8_t fscal0_max = -127;
@@ -199,7 +141,7 @@ static void frsky_tune() {
       break;
     }
 
-    frsky_tune_freq(bind.freq_offset);
+    protocol_tune_freq(bind.freq_offset);
 
     timer_timeout_set_ms(50);
     done = 0;
@@ -240,11 +182,11 @@ static void frsky_tune() {
   int8_t fscal0_calc = (fscal0_max + fscal0_min) / 2;
   bind.freq_offset = fscal0_calc;
 
-  frsky_tune_freq(bind.freq_offset);
+  protocol_tune_freq(bind.freq_offset);
 }
 
 static void frsky_fetch_txid() {
-  frsky_enter_rxmode(0);
+  protocol_enter_rxmode(0);
 
   bind.txid[0] = 0;
   bind.txid[1] = 0;
@@ -308,45 +250,32 @@ static void frsky_fetch_txid() {
   radio_strobe(RFST_SIDLE);
 }
 
-static void frsky_calibrate() {
-  frsky_tune_freq(bind.freq_offset);
-
-  for (int i = 0; i < HOPTABLE_SIZE; i++) {
-    uint8_t ch = bind.hop_table[i];
-    frsky_tune_channel(ch);
-    fscal1_table[i] = radio_read_reg(FSCAL1);
-  }
-
-  fscal3 = radio_read_reg(FSCAL3);
-  fscal2 = radio_read_reg(FSCAL2);
-
-  radio_strobe(RFST_SIDLE);
-}
-
 static void frsky_bind() {
   debug_print("frsky_bind\r\n");
   bind.txid[0] = 0x03;
   bind.freq_offset = 0;
+
+  protocol_set_address();
 
   frsky_tune();
   frsky_fetch_txid();
 }
 
 static void frsky_send_update(uint8_t packet_lost) {
-  // set magic
-  packet[0] = 0x2A;
-  if (packet_lost == 1) {
-    packet[0] |= 0b01000000;
-  }
-
-  // move rssi up
-  packet[CHANNEL_START + 7] = packet[FRSKY_PACKET_SIZE + 1] & 0x7f;
-
-  uint16_t crc = crc_compute((uint8_t *)packet, FRSKY_PACKET_SIZE);
-  WRITE_WORD(packet[1], packet[2], crc);
 
   // drop size, lqi & rssi from packet
-  uart_dma_start((uint8_t *)packet, FRSKY_PACKET_SIZE);
+  //uart_dma_start((uint8_t *)packet, FRSKY_PACKET_SIZE);
+  if (!packet_lost) {
+    debug_printf("packet %d\r\n", packet[3]);
+  } else {
+    debug_print("packet lost\r\n");
+  }
+}
+
+static void frsky_send_telemetry(uint8_t id) {
+  radio_strobe(RFST_SFRX);
+
+  radio_enter_tx();
 }
 
 void frsky_init() {
@@ -361,39 +290,50 @@ void frsky_init() {
     storage_write((uint8_t *)&bind, sizeof(bind_data));
   }
 
-  frsky_calibrate();
+  protocol_set_address();
+  protocol_calibrate();
   delay_ms(100);
 }
 
 void frsky_main() {
   debug_print("frsky_main\r\n");
 
-  frsky_enter_rxmode(bind.hop_table[current_channel_index]);
+  protocol_enter_rxmode(bind.hop_table[current_channel_index]);
+  radio_strobe(RFST_SRX);
 
-  timer_timeout_set_ms(500);
+  timer_timeout_set_100us(LOST_PACKET_TIME);
 
   uint8_t conn_lost = 1;
   uint8_t missing = 0;
-  uint8_t packet_received = 0;
+  volatile uint8_t packet_received = 0;
+  volatile uint8_t telemetry_start = 0;
+  volatile uint8_t telemetry_sending = 0;
 
-  uint16_t looptime = DEFAULT_PACKET_TIME_US;
   while (1) {
     if (timer_timeout()) {
       if (conn_lost) {
         // connection lost, do a full sync
-        timer_timeout_set_100us(DEFAULT_PACKET_TIME_US);
+        timer_timeout_set_100us(LOST_PACKET_TIME);
       } else if (packet_received) {
-        //Add 1/8 looptime jitter for packets
-        timer_timeout_set_100us(looptime + looptime / 8);
+        // we got a packet, a litte bit of jitter
+        timer_timeout_set_100us(DEFAULT_PACKET_TIME + PACKET_JITTER_TIME);
       } else {
-        //If you missed the last packet don't add the jitter
-        timer_timeout_set_100us(looptime);
+        timer_timeout_set_100us(DEFAULT_PACKET_TIME);
       }
 
-      frsky_increment_channel(1);
+      if (telemetry_sending) {
+        telemetry_sending = 0;
+      }
 
-      radio_enable_rx();
-      radio_strobe(RFST_SRX);
+      protocol_increment_channel(1);
+
+      if (telemetry_start) {
+        telemetry_start = 0;
+        telemetry_sending = 1;
+      } else {
+        radio_enable_rx();
+        radio_strobe(RFST_SRX);
+      }
 
       if (!packet_received) {
         frsky_send_update(1);
@@ -406,7 +346,7 @@ void frsky_main() {
       if (missing >= 5 && (missing % 5) == 0) {
         radio_switch_antenna();
       }
-      if (missing >= 50) {
+      if (missing >= 150) {
         conn_lost = 1;
       }
       if (missing >= 250) {
@@ -419,6 +359,12 @@ void frsky_main() {
       }
 
       radio_handle_overflows();
+    }
+
+    if (telemetry_sending) {
+      packet_received = 1;
+      radio_reset_packet();
+      continue;
     }
 
     if (!radio_received_packet()) {
@@ -434,9 +380,13 @@ void frsky_main() {
       continue;
     }
 
+    if ((packet[3] % 4) == 2) {
+      // next frame is a telemetry frame
+      telemetry_start = 1;
+    }
+
     led_green_on();
 
-    looptime = packet[CHANNEL_START + 7];
     frsky_send_update(0);
     timer_timeout_set_100us(0);
 

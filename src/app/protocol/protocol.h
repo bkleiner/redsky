@@ -9,14 +9,15 @@
 #include "redpine.h"
 
 #ifdef PROTOCOL_REDPINE
+#define HOPTABLE_SIZE REDPINE_HOPTABLE_SIZE
 #define RADIO_RX_BUF_SIZE REDPINE_PACKET_BUFFER_SIZE
 #endif
 
 #ifdef PROTOCOL_FRSKY
+#define HOPTABLE_SIZE FRSKY_HOPTABLE_SIZE
 #define RADIO_RX_BUF_SIZE FRSKY_PACKET_BUFFER_SIZE
 #endif
 
-#define HOPTABLE_SIZE 49
 #define MAX_HOPTABLE_SIZE 50
 
 typedef struct {
@@ -27,5 +28,13 @@ typedef struct {
 
 void protocol_init();
 void protocol_main();
+
+void protocol_tune_freq(int8_t freq);
+void protocol_tune_channel(uint8_t ch);
+void protocol_enter_rxmode(uint8_t channel);
+void protocol_set_channel(uint8_t hop_index);
+void protocol_increment_channel(int8_t cnt);
+void protocol_calibrate();
+void protocol_set_address();
 
 #endif
