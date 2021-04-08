@@ -5,11 +5,9 @@
 #include "delay.h"
 #include "driver.h"
 #include "gpio.h"
-#include "redpine.h"
+#include "protocol/protocol.h"
 
 #define FIFO 0x3F
-
-#define RADIO_RX_BUF_SIZE REDPINE_PACKET_BUFFER_SIZE
 
 volatile uint8_t packet[RADIO_RX_BUF_SIZE];
 static volatile uint8_t received_packet = 0;

@@ -23,8 +23,8 @@ int main() {
 
   delay_ms(250);
 
-  redpine_init();
-  redpine_main();
+  protocol_init();
+  protocol_main();
 
   return 1;
 }

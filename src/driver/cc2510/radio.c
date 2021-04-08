@@ -4,9 +4,7 @@
 #include "delay.h"
 #include "dma.h"
 
-#include "redpine.h"
-
-#define RADIO_RX_BUF_SIZE REDPINE_PACKET_BUFFER_SIZE
+#include "protocol/protocol.h"
 
 static void lna_enable() {
 #ifdef RF_LNA_PORT

@@ -1,17 +1,16 @@
-#include "redpine.h"
+#include "frsky.h"
 
 #include "crc.h"
 #include "debug.h"
 #include "delay.h"
 #include "driver.h"
 #include "led.h"
+#include "protocol.h"
 #include "radio.h"
 #include "storage.h"
 #include "timer.h"
 #include "util.h"
 
-#define HOPTABLE_SIZE 49
-#define MAX_HOPTABLE_SIZE 50
 #define MAX_BIND_PACKET_COUNT 10
 
 #define DEFAULT_PACKET_TIME_US 50000
@@ -20,17 +19,11 @@
 
 #define HOPDATA_RECEIVE_DONE ((1 << (MAX_BIND_PACKET_COUNT)) - 1)
 
-#define REDPINE_VALID_PACKET_CRC(_b) (_b[REDPINE_PACKET_SIZE_W_ADDONS - 1] & (1 << 7))
-#define REDPINE_VALID_PACKET_BIND(_b) ((_b[2] == 0x01) && REDPINE_VALID_PACKET_CRC(_b))
+#define FRSKY_VALID_PACKET_CRC(_b) (_b[FRSKY_PACKET_SIZE_W_ADDONS - 1] & (1 << 7))
+#define FRSKY_VALID_PACKET_BIND(_b) ((_b[2] == 0x01) && FRSKY_VALID_PACKET_CRC(_b))
 
-#define REDPINE_VALID_TXID(_b) ((_b[1] == bind.txid[0]) && (_b[2] == bind.txid[1]))
-#define REDPINE_VALID_PACKET(_b) ((_b[0] == 10) && REDPINE_VALID_TXID(_b) && REDPINE_VALID_PACKET_CRC(_b))
-
-typedef struct {
-  uint8_t txid[2];
-  uint8_t hop_table[MAX_HOPTABLE_SIZE];
-  int8_t freq_offset;
-} bind_data;
+#define FRSKY_VALID_TXID(_b) ((_b[1] == bind.txid[0]) && (_b[2] == bind.txid[1]))
+#define FRSKY_VALID_PACKET(_b) ((_b[0] == 10) && FRSKY_VALID_TXID(_b) && FRSKY_VALID_PACKET_CRC(_b))
 
 typedef enum {
   TUNE_INIT,
@@ -39,70 +32,56 @@ typedef enum {
   TUNE_DONE
 } tune_state;
 
-#define min(a, b) (((a) < (b)) ? (a) : (b))
-#define max(a, b) (((a) > (b)) ? (a) : (b))
+extern volatile EXT_MEMORY uint8_t packet[RADIO_RX_BUF_SIZE];
 
-bind_data EXT_MEMORY bind = {
-    .txid = {0xFF, 0xFF},
-};
+extern EXT_MEMORY uint8_t current_channel_index;
 
-extern volatile EXT_MEMORY uint8_t packet[REDPINE_PACKET_BUFFER_SIZE];
+extern EXT_MEMORY uint8_t fscal1_table[HOPTABLE_SIZE];
+extern EXT_MEMORY uint8_t fscal2;
+extern EXT_MEMORY uint8_t fscal3;
 
-EXT_MEMORY uint8_t current_channel_index = 0;
+extern bind_data EXT_MEMORY bind;
 
-EXT_MEMORY uint8_t fscal1_table[HOPTABLE_SIZE];
-EXT_MEMORY uint8_t fscal2;
-EXT_MEMORY uint8_t fscal3;
-
-static void redpine_configure() {
-  debug_print("redpine_configure\r\n");
+static void frsky_configure() {
+  debug_print("frsky_configure\r\n");
 
   radio_io_config();
 
-  radio_write_reg(PKTLEN, REDPINE_PACKET_SIZE);
+  radio_write_reg(PKTLEN, FRSKY_PACKET_SIZE);
   radio_write_reg(PKTCTRL1, 0x0C);
-  radio_write_reg(PKTCTRL0, 0x05);
+  radio_write_reg(PKTCTRL0, 0x04);
   radio_write_reg(PA_TABLE0, 0xFF);
 
-  radio_write_reg(FSCTRL1, 0x0A);
+  radio_write_reg(FSCTRL1, 0x08);
   radio_write_reg(FSCTRL0, 0x00);
 
-  radio_write_reg(FREQ2, 0x5D);
-  radio_write_reg(FREQ1, 0x93);
-  radio_write_reg(FREQ0, 0xB1);
+  radio_write_reg(FREQ2, 0x5C);
+  radio_write_reg(FREQ1, 0x76);
+  radio_write_reg(FREQ0, 0x27);
 
-  radio_write_reg(MDMCFG4, 0x2D);
-  radio_write_reg(MDMCFG3, 0x3B);
-  radio_write_reg(MDMCFG2, 0x73);
+  radio_write_reg(MDMCFG4, 0xAA);
+  radio_write_reg(MDMCFG3, 0x39);
+  radio_write_reg(MDMCFG2, 0x11);
   radio_write_reg(MDMCFG1, 0x23);
-  radio_write_reg(MDMCFG0, 0x56);
+  radio_write_reg(MDMCFG0, 0x7A);
 
-  radio_write_reg(DEVIATN, 0x00);
+  radio_write_reg(DEVIATN, 0x42);
 
-  radio_write_reg(MCSM1, 0x0C);
+  radio_write_reg(MCSM1, 0x0F);
   radio_write_reg(MCSM0, 0x18);
 
-  radio_write_reg(FOCCFG, 0x1D);
-  radio_write_reg(BSCFG, 0x1C);
+  radio_write_reg(FOCCFG, 0x16);
+  radio_write_reg(BSCFG, 0x6C);
 
-#ifdef USE_LNA
-  // 0b01000011
-  radio_write_reg(AGCCTRL2, 0b01000011);
-  // 0b01000000
-  radio_write_reg(AGCCTRL1, 0b01000000);
-  // 0b10010001
-  radio_write_reg(AGCCTRL0, 0b10110010);
-#else
-  radio_write_reg(AGCCTRL2, 0b11000111);
-  radio_write_reg(AGCCTRL1, 0b00000000);
-  radio_write_reg(AGCCTRL0, 0b10110000);
-#endif
+  radio_write_reg(AGCCTRL2, 0x03);
+  radio_write_reg(AGCCTRL1, 0x40);
+  radio_write_reg(AGCCTRL0, 0x91);
 
-  radio_write_reg(FREND1, 0xB6);
+  radio_write_reg(FREND1, 0x56);
   radio_write_reg(FREND0, 0x10);
 
-  radio_write_reg(FSCAL3, 0xEA);
-  radio_write_reg(FSCAL2, 0x0A);
+  radio_write_reg(FSCAL3, 0xA9);
+  radio_write_reg(FSCAL2, 0x05);
   radio_write_reg(FSCAL1, 0x00);
   radio_write_reg(FSCAL0, 0x11);
 
@@ -115,14 +94,14 @@ static void redpine_configure() {
   radio_write_reg(ADDR, 0x00);
 }
 
-static void redpine_tune_freq(int8_t freq) {
+static void frsky_tune_freq(int8_t freq) {
   radio_strobe(RFST_SIDLE);
   radio_write_reg(FSCTRL0, freq);
   delay_ms(1);
   radio_strobe(RFST_SRX);
 }
 
-static void redpine_tune_channel(uint8_t ch) {
+static void frsky_tune_channel(uint8_t ch) {
   radio_strobe(RFST_SIDLE);
   radio_write_reg(CHANNR, ch);
   radio_strobe(RFST_SCAL);
@@ -131,16 +110,16 @@ static void redpine_tune_channel(uint8_t ch) {
     ;
 }
 
-static void redpine_enter_rxmode(uint8_t channel) {
+static void frsky_enter_rxmode(uint8_t channel) {
   radio_strobe(RFST_SIDLE);
 
-  redpine_tune_channel(channel);
+  frsky_tune_channel(channel);
   radio_enable_rx();
 
   radio_strobe(RFST_SRX);
 }
 
-static void redpine_set_channel(uint8_t hop_index) {
+static void frsky_set_channel(uint8_t hop_index) {
   uint8_t ch = bind.hop_table[hop_index];
 
   radio_strobe(RFST_SIDLE);
@@ -152,7 +131,7 @@ static void redpine_set_channel(uint8_t hop_index) {
   radio_write_reg(CHANNR, ch);
 }
 
-static void redpine_increment_channel(int8_t cnt) {
+static void frsky_increment_channel(int8_t cnt) {
   int8_t next = current_channel_index + cnt;
 
   // convert to a safe unsigned number:
@@ -164,11 +143,11 @@ static void redpine_increment_channel(int8_t cnt) {
   }
 
   current_channel_index = next;
-  redpine_set_channel(current_channel_index);
+  frsky_set_channel(current_channel_index);
 }
 
-static void redpine_tune() {
-  debug_print("redpine_tune\r\n");
+static void frsky_tune() {
+  debug_print("frsky_tune\r\n");
 
   bind.freq_offset = 0;
 
@@ -178,7 +157,7 @@ static void redpine_tune() {
   radio_write_reg(PKTCTRL1, 0x0C);
   radio_write_reg(MCSM0, 0x8);
 
-  redpine_enter_rxmode(0);
+  frsky_enter_rxmode(0);
 
   int8_t fscal0_min = 127;
   int8_t fscal0_max = -127;
@@ -220,7 +199,7 @@ static void redpine_tune() {
       break;
     }
 
-    redpine_tune_freq(bind.freq_offset);
+    frsky_tune_freq(bind.freq_offset);
 
     timer_timeout_set_ms(50);
     done = 0;
@@ -234,7 +213,7 @@ static void redpine_tune() {
       radio_enable_rx();
       radio_strobe(RFST_SRX);
 
-      if (!REDPINE_VALID_PACKET_BIND(packet)) {
+      if (!FRSKY_VALID_PACKET_BIND(packet)) {
         continue;
       }
 
@@ -261,11 +240,11 @@ static void redpine_tune() {
   int8_t fscal0_calc = (fscal0_max + fscal0_min) / 2;
   bind.freq_offset = fscal0_calc;
 
-  redpine_tune_freq(bind.freq_offset);
+  frsky_tune_freq(bind.freq_offset);
 }
 
-static void redpine_fetch_txid() {
-  redpine_enter_rxmode(0);
+static void frsky_fetch_txid() {
+  frsky_enter_rxmode(0);
 
   bind.txid[0] = 0;
   bind.txid[1] = 0;
@@ -298,7 +277,7 @@ static void redpine_fetch_txid() {
     radio_enable_rx();
     radio_strobe(RFST_SRX);
 
-    if (!REDPINE_VALID_PACKET_BIND(packet)) {
+    if (!FRSKY_VALID_PACKET_BIND(packet)) {
       continue;
     }
 
@@ -323,18 +302,18 @@ static void redpine_fetch_txid() {
       hopdata_received |= (1 << (index / 5));
     }
 
-    packet[REDPINE_PACKET_BUFFER_SIZE - 1] = 0x00;
+    packet[FRSKY_PACKET_BUFFER_SIZE - 1] = 0x00;
   }
 
   radio_strobe(RFST_SIDLE);
 }
 
-static void redpine_calibrate() {
-  redpine_tune_freq(bind.freq_offset);
+static void frsky_calibrate() {
+  frsky_tune_freq(bind.freq_offset);
 
   for (int i = 0; i < HOPTABLE_SIZE; i++) {
     uint8_t ch = bind.hop_table[i];
-    redpine_tune_channel(ch);
+    frsky_tune_channel(ch);
     fscal1_table[i] = radio_read_reg(FSCAL1);
   }
 
@@ -344,32 +323,16 @@ static void redpine_calibrate() {
   radio_strobe(RFST_SIDLE);
 }
 
-static void redpine_bind() {
-  debug_print("redpine_bind\r\n");
+static void frsky_bind() {
+  debug_print("frsky_bind\r\n");
   bind.txid[0] = 0x03;
   bind.freq_offset = 0;
 
-  redpine_tune();
-  redpine_fetch_txid();
+  frsky_tune();
+  frsky_fetch_txid();
 }
 
-void redpine_init() {
-  debug_print("redpine_init\r\n");
-
-  redpine_configure();
-
-  storage_read((uint8_t *)&bind, sizeof(bind_data));
-  if ((bind.txid[0] == 0x0 && bind.txid[1] == 0x0) ||
-      (bind.txid[0] == 0xFF && bind.txid[1] == 0xFF)) {
-    redpine_bind();
-    storage_write((uint8_t *)&bind, sizeof(bind_data));
-  }
-
-  redpine_calibrate();
-  delay_ms(100);
-}
-
-static void redpine_send_update(uint8_t packet_lost) {
+static void frsky_send_update(uint8_t packet_lost) {
   // set magic
   packet[0] = 0x2A;
   if (packet_lost == 1) {
@@ -377,19 +340,35 @@ static void redpine_send_update(uint8_t packet_lost) {
   }
 
   // move rssi up
-  packet[CHANNEL_START + 7] = packet[REDPINE_PACKET_SIZE + 1] & 0x7f;
+  packet[CHANNEL_START + 7] = packet[FRSKY_PACKET_SIZE + 1] & 0x7f;
 
-  uint16_t crc = crc_compute((uint8_t *)packet, REDPINE_PACKET_SIZE);
+  uint16_t crc = crc_compute((uint8_t *)packet, FRSKY_PACKET_SIZE);
   WRITE_WORD(packet[1], packet[2], crc);
 
   // drop size, lqi & rssi from packet
-  uart_dma_start((uint8_t *)packet, REDPINE_PACKET_SIZE);
+  uart_dma_start((uint8_t *)packet, FRSKY_PACKET_SIZE);
 }
 
-void redpine_main() {
-  debug_print("redpine_main\r\n");
+void frsky_init() {
+  debug_print("frsky_init\r\n");
 
-  redpine_enter_rxmode(bind.hop_table[current_channel_index]);
+  frsky_configure();
+
+  storage_read((uint8_t *)&bind, sizeof(bind_data));
+  if ((bind.txid[0] == 0x0 && bind.txid[1] == 0x0) ||
+      (bind.txid[0] == 0xFF && bind.txid[1] == 0xFF)) {
+    frsky_bind();
+    storage_write((uint8_t *)&bind, sizeof(bind_data));
+  }
+
+  frsky_calibrate();
+  delay_ms(100);
+}
+
+void frsky_main() {
+  debug_print("frsky_main\r\n");
+
+  frsky_enter_rxmode(bind.hop_table[current_channel_index]);
 
   timer_timeout_set_ms(500);
 
@@ -411,13 +390,13 @@ void redpine_main() {
         timer_timeout_set_100us(looptime);
       }
 
-      redpine_increment_channel(1);
+      frsky_increment_channel(1);
 
       radio_enable_rx();
       radio_strobe(RFST_SRX);
 
       if (!packet_received) {
-        redpine_send_update(1);
+        frsky_send_update(1);
         missing++;
         led_red_on();
         led_green_off();
@@ -450,7 +429,7 @@ void redpine_main() {
     led_red_off();
     radio_reset_packet();
 
-    if (!REDPINE_VALID_PACKET(packet)) {
+    if (!FRSKY_VALID_PACKET(packet)) {
       packet_received = 0;
       continue;
     }
@@ -458,7 +437,7 @@ void redpine_main() {
     led_green_on();
 
     looptime = packet[CHANNEL_START + 7];
-    redpine_send_update(0);
+    frsky_send_update(0);
     timer_timeout_set_100us(0);
 
     missing = 0;

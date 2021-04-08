@@ -12,4 +12,7 @@
 
 #define READ_WORD(H, L) ((H << 8) | L)
 
+#define min(a, b) (((a) < (b)) ? (a) : (b))
+#define max(a, b) (((a) > (b)) ? (a) : (b))
+
 #endif
