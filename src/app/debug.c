@@ -69,12 +69,12 @@ uint16_t debug_vsnprintf(char *buf, uint16_t buf_len, char *fmt, va_list va) {
 
     case 'u':
     case 'd': {
-      ptr += _itoa(buf, ptr, buf_len, va_arg(va, uint16_t), 10, (*ch == 'u'));
+      ptr += _itoa(buf, ptr, buf_len, va_arg(va, int), 10, (*ch == 'u'));
       break;
     }
 
     case 'x': {
-      ptr += _itoa(buf, ptr, buf_len, va_arg(va, uint16_t), 16, 1);
+      ptr += _itoa(buf, ptr, buf_len, va_arg(va, int), 16, 1);
       break;
     }
 

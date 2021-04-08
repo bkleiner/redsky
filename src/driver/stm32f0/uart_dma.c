@@ -2,6 +2,8 @@
 
 #include <string.h>
 
+#include "debug.h"
+
 void uart_dma_init() {
   // remapo uart1 dma to channel 4/5
   MODIFY_REG(SYSCFG->CFGR1, 0b11 << SYSCFG_CFGR1_USART1TX_DMA_RMP_Pos, 0b11 << SYSCFG_CFGR1_USART1TX_DMA_RMP_Pos);
@@ -59,3 +61,19 @@ void uart_dma_print(const char *str) {
 
   uart_dma_start((uint8_t *)str, _strlen(str));
 }
+
+#ifdef DEBUG_OUTPUT
+void uart_dma_printf(char *fmt, ...) {
+  while (!dma_transfer_done)
+    ;
+
+  static uint8_t buffer[255];
+
+  va_list va;
+  va_start(va, fmt);
+  uint16_t len = debug_vsnprintf((char *)buffer, 255, fmt, va);
+  va_end(va);
+
+  uart_dma_start(buffer, len);
+}
+#endif
