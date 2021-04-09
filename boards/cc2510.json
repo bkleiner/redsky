@@ -1,0 +1,23 @@
+{
+  "build": {
+    "core": "naked",
+    "extra_flags": "",
+    "f_cpu": "26000000L",
+    "size_iram": 256,
+    "size_xram": 2048,
+    "size_code": 16384,
+    "size_heap": 128,
+    "mcu": "cc2510",
+    "cpu": "mcs51",
+    "variant": "cc251x"
+  },
+  "debug": {},
+  "frameworks": [],
+  "upload": {
+    "maximum_ram_size": 2048,
+    "maximum_size": 16384
+  },
+  "name": "Generic cc2510",
+  "url": "https://www.ti.com/product/CC2510",
+  "vendor": "Texas Instruments"
+}
