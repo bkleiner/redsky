@@ -7,6 +7,15 @@
 #define READ_FLAG 0x80
 #define BURST_FLAG 0x40
 
+#define STATE_IDLE (0 << 4)
+#define STATE_RX (1 << 4)
+#define STATE_TX (2 << 4)
+#define STATE_FSTXON (3 << 4)
+#define STATE_CALIBRATE (4 << 4)
+#define STATE_SETTLING (5 << 4)
+#define STATE_RXFIFO_OVF (6 << 4)
+#define STATE_TXFIFO_OVF (7 << 4)
+
 #define PARTNUM (0x30 | BURST_FLAG)
 #define VERSION (0x31 | BURST_FLAG)
 #define FREQEST (0x32 | BURST_FLAG)
@@ -91,7 +100,11 @@ void radio_strobe(uint8_t val);
 
 void radio_init();
 void radio_io_config();
+
 void radio_enable_rx();
+void radio_enter_tx();
+
+uint8_t radio_transmit(uint8_t *buf, uint32_t len);
 
 void radio_handle_overflows();
 

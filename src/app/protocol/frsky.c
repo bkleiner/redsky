@@ -1,5 +1,7 @@
 #include "frsky.h"
 
+#include <string.h>
+
 #include "crc.h"
 #include "debug.h"
 #include "delay.h"
@@ -272,11 +274,31 @@ static void frsky_send_update(uint8_t packet_lost) {
   }
 }
 
+#ifdef USE_TELEMETRY
 static void frsky_send_telemetry(uint8_t id) {
   radio_strobe(RFST_SFRX);
 
   radio_enter_tx();
+
+  memset((uint8_t *)packet, 0, FRSKY_PACKET_BUFFER_SIZE);
+
+  packet[0] = 0x11; // length of byte (always 0x11 = 17 bytes)
+  packet[1] = bind.txid[0];
+  packet[2] = bind.txid[1];
+  packet[3] = 0;   // ADC channels
+  packet[4] = 0;   // ADC channels
+  packet[5] = 100; // RSSI
+
+  // no hub telemetry for now
+  packet[6] = 0; // size
+  packet[7] = id;
+
+  radio_strobe(RFST_SIDLE);
+  radio_transmit((uint8_t *)packet, FRSKY_PACKET_BUFFER_SIZE);
+
+  radio_enable_rx();
 }
+#endif
 
 void frsky_init() {
   debug_print("frsky_init\r\n");
@@ -305,15 +327,20 @@ void frsky_main() {
 
   uint8_t conn_lost = 1;
   uint8_t missing = 0;
-  volatile uint8_t packet_received = 0;
-  volatile uint8_t telemetry_start = 0;
-  volatile uint8_t telemetry_sending = 0;
+  uint8_t packet_received = 0;
+
+  uint8_t telemetry_id = 0;
+  uint8_t telemetry_start = 0;
+  uint8_t telemetry_sending = 0;
 
   while (1) {
     if (timer_timeout()) {
       if (conn_lost) {
         // connection lost, do a full sync
         timer_timeout_set_100us(LOST_PACKET_TIME);
+      } else if (telemetry_start) {
+        // we already waited 2ms down below
+        timer_timeout_set_100us(DEFAULT_PACKET_TIME - 20 + PACKET_JITTER_TIME);
       } else if (packet_received) {
         // we got a packet, a litte bit of jitter
         timer_timeout_set_100us(DEFAULT_PACKET_TIME + PACKET_JITTER_TIME);
@@ -328,6 +355,9 @@ void frsky_main() {
       protocol_increment_channel(1);
 
       if (telemetry_start) {
+#ifdef USE_TELEMETRY
+        frsky_send_telemetry(telemetry_id);
+#endif
         telemetry_start = 0;
         telemetry_sending = 1;
       } else {
@@ -346,7 +376,7 @@ void frsky_main() {
       if (missing >= 5 && (missing % 5) == 0) {
         radio_switch_antenna();
       }
-      if (missing >= 150) {
+      if (missing >= 100) {
         conn_lost = 1;
       }
       if (missing >= 250) {
@@ -361,7 +391,7 @@ void frsky_main() {
       radio_handle_overflows();
     }
 
-    if (telemetry_sending) {
+    if (telemetry_sending || telemetry_start) {
       packet_received = 1;
       radio_reset_packet();
       continue;
@@ -384,11 +414,17 @@ void frsky_main() {
       // next frame is a telemetry frame
       telemetry_start = 1;
     }
+    telemetry_id = packet[4];
 
     led_green_on();
 
     frsky_send_update(0);
-    timer_timeout_set_100us(0);
+    if (telemetry_start) {
+      // telemetry must be sent ~2ms after rx
+      timer_timeout_set_100us(20);
+    } else {
+      timer_timeout_set_100us(0);
+    }
 
     missing = 0;
     packet_received = 1;

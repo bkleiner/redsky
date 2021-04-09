@@ -133,6 +133,21 @@ void radio_strobe(uint8_t val) {
   radio_csn_disable();
 }
 
+static inline uint8_t radio_write_multi(uint8_t reg, uint8_t *data, uint8_t len) {
+  while (!dma_transfer_done)
+    __WFI();
+
+  radio_csn_enable();
+
+  const uint8_t ret = radio_transfer(reg);
+  for (uint8_t i = 0; i < len; i++) {
+    radio_transfer(data[i]);
+  }
+
+  radio_csn_disable();
+  return ret;
+}
+
 static inline uint8_t radio_read_multi(uint8_t reg, uint8_t *result, uint8_t len) {
   while (!dma_transfer_done)
     __WFI();
@@ -255,6 +270,21 @@ void radio_switch_antenna() {
 }
 
 void radio_enable_rx() {
+  gpio_reset(RF_PA_PIN);
+  gpio_set(RF_LNA_PIN);
+}
+
+void radio_enter_tx() {
+  gpio_reset(RF_LNA_PIN);
+  gpio_set(RF_PA_PIN);
+}
+
+uint8_t radio_transmit(uint8_t *buf, uint32_t len) {
+  radio_strobe(RFST_SFTX);
+  radio_write_multi(FIFO | WRITE_FLAG | BURST_FLAG, buf, len);
+  radio_strobe(RFST_STX);
+
+  return ((radio_transfer(0xFF) & (0x70)) == STATE_RX);
 }
 
 void radio_handle_overflows() {
