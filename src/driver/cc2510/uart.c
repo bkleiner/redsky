@@ -53,7 +53,7 @@ void uart_init() {
   U0BAUD = BAUD_M_230400;
   U0GCR = (U0GCR & ~0x1F) | (BAUD_E_230400);
 
-  __xdata uart_config_t config;
+  uart_config_t config;
 
   config.START = 0;
   config.STOP = 1;
