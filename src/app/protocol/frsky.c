@@ -266,13 +266,49 @@ static void frsky_bind() {
 
 static void frsky_send_update(uint8_t packet_lost) {
 
-  // drop size, lqi & rssi from packet
-  //uart_dma_start((uint8_t *)packet, FRSKY_PACKET_SIZE);
-  if (!packet_lost) {
-    uart_dma_print("P");
-  } else {
-    uart_dma_print("L");
+  static EXT_MEMORY uint16_t channel_data[8];
+
+  channel_data[0] = (uint16_t)((packet[10] & 0x0F) << 8 | packet[6]) - 1260;
+  channel_data[1] = (uint16_t)((packet[10] & 0xF0) << 4 | packet[7]) - 1260;
+  channel_data[2] = (uint16_t)((packet[11] & 0x0F) << 8 | packet[8]) - 1260;
+  channel_data[3] = (uint16_t)((packet[11] & 0xF0) << 4 | packet[9]) - 1260;
+  channel_data[4] = (uint16_t)((packet[16] & 0x0F) << 8 | packet[12]) - 1260;
+  channel_data[5] = (uint16_t)((packet[16] & 0xF0) << 4 | packet[13]) - 1260;
+  channel_data[6] = (uint16_t)((packet[17] & 0x0F) << 8 | packet[14]) - 1260;
+  channel_data[7] = (uint16_t)((packet[17] & 0xF0) << 4 | packet[15]) - 1260;
+
+#define SBUS_SIZE 25
+#define SBUS_SYNC 0x0F
+#define SBUS_FLAG_FRAME_LOST (1 << 2)
+#define SBUS_FLAG_FAILSAFE_ACTIVE (1 << 3)
+
+  static EXT_MEMORY uint8_t sbus_data[SBUS_SIZE];
+
+  memset(sbus_data, 0, SBUS_SIZE);
+
+  sbus_data[0] = SBUS_SYNC;
+
+  sbus_data[1] = channel_data[0];
+  sbus_data[2] = (channel_data[1] << 3) | channel_data[0] >> 8;
+  sbus_data[3] = (channel_data[1] >> 5) | (channel_data[2] << 6);
+  sbus_data[4] = (channel_data[2] >> 2) & 0xFF;
+  sbus_data[5] = (channel_data[2] >> 10) | (channel_data[3] << 1);
+  sbus_data[6] = (channel_data[3] >> 7) | (channel_data[4] << 4);
+  sbus_data[7] = (channel_data[4] >> 4) | (channel_data[5] << 7);
+  sbus_data[8] = (channel_data[5] >> 1) & 0xFF;
+  sbus_data[9] = (channel_data[5] >> 9) | (channel_data[6] << 2);
+  sbus_data[10] = (channel_data[6] >> 6) | (channel_data[7] << 5);
+  sbus_data[11] = (channel_data[7] >> 3) & 0xFF;
+
+  sbus_data[23] = 0;
+
+  if (packet_lost) {
+    sbus_data[23] |= SBUS_FLAG_FRAME_LOST;
   }
+
+  sbus_data[24] = 0;
+
+  uart_dma_start(sbus_data, SBUS_SIZE);
 }
 
 #ifdef USE_TELEMETRY
@@ -352,6 +388,7 @@ void frsky_main() {
       protocol_increment_channel(1);
 
       if (telemetry_sending) {
+        frsky_send_update(0);
         telemetry_sending = 0;
       }
 
@@ -364,9 +401,6 @@ void frsky_main() {
           ;
 
         radio_reset_packet();
-        radio_enable_rx();
-
-        radio_strobe(RFST_SRX);
 #endif
         telemetry_start = 0;
         telemetry_sending = 1;
@@ -437,6 +471,8 @@ void frsky_main() {
     } else {
       timer_timeout_set_100us(0);
     }
+
+    packet[19] = 0;
 
     missing = 0;
     packet_received = 1;
