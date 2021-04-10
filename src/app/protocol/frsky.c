@@ -277,11 +277,6 @@ static void frsky_send_update(uint8_t packet_lost) {
   channel_data[6] = (uint16_t)((packet[17] & 0x0F) << 8 | packet[14]) - 1260;
   channel_data[7] = (uint16_t)((packet[17] & 0xF0) << 4 | packet[15]) - 1260;
 
-#define SBUS_SIZE 25
-#define SBUS_SYNC 0x0F
-#define SBUS_FLAG_FRAME_LOST (1 << 2)
-#define SBUS_FLAG_FAILSAFE_ACTIVE (1 << 3)
-
   static EXT_MEMORY uint8_t sbus_data[SBUS_SIZE];
 
   memset(sbus_data, 0, SBUS_SIZE);

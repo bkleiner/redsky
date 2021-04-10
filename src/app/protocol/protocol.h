@@ -20,6 +20,11 @@
 
 #define MAX_HOPTABLE_SIZE 50
 
+#define SBUS_SIZE 25
+#define SBUS_SYNC 0x0F
+#define SBUS_FLAG_FRAME_LOST (1 << 2)
+#define SBUS_FLAG_FAILSAFE_ACTIVE (1 << 3)
+
 typedef struct {
   uint8_t txid[2];
   uint8_t hop_table[MAX_HOPTABLE_SIZE];

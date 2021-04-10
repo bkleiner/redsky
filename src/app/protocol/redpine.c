@@ -103,58 +103,6 @@ static void redpine_configure() {
   radio_write_reg(ADDR, 0x00);
 }
 
-static void redpine_tune_freq(int8_t freq) {
-  radio_strobe(RFST_SIDLE);
-  radio_write_reg(FSCTRL0, freq);
-  delay_ms(1);
-  radio_strobe(RFST_SRX);
-}
-
-static void redpine_tune_channel(uint8_t ch) {
-  radio_strobe(RFST_SIDLE);
-  radio_write_reg(CHANNR, ch);
-  radio_strobe(RFST_SCAL);
-
-  while (radio_read_reg(MARCSTATE) != 0x01)
-    ;
-}
-
-static void redpine_enter_rxmode(uint8_t channel) {
-  radio_strobe(RFST_SIDLE);
-
-  redpine_tune_channel(channel);
-  radio_enable_rx();
-
-  radio_strobe(RFST_SRX);
-}
-
-static void redpine_set_channel(uint8_t hop_index) {
-  uint8_t ch = bind.hop_table[hop_index];
-
-  radio_strobe(RFST_SIDLE);
-
-  radio_write_reg(FSCAL3, fscal3);
-  radio_write_reg(FSCAL2, fscal2);
-  radio_write_reg(FSCAL1, fscal1_table[hop_index]);
-
-  radio_write_reg(CHANNR, ch);
-}
-
-static void redpine_increment_channel(int8_t cnt) {
-  int8_t next = current_channel_index + cnt;
-
-  // convert to a safe unsigned number:
-  if (next < 0) {
-    next += HOPTABLE_SIZE;
-  }
-  if (next >= HOPTABLE_SIZE) {
-    next -= HOPTABLE_SIZE;
-  }
-
-  current_channel_index = next;
-  redpine_set_channel(current_channel_index);
-}
-
 static void redpine_tune() {
   debug_print("redpine_tune\r\n");
 
@@ -166,7 +114,7 @@ static void redpine_tune() {
   radio_write_reg(PKTCTRL1, 0x0C);
   radio_write_reg(MCSM0, 0x8);
 
-  redpine_enter_rxmode(0);
+  protocol_enter_rxmode(0);
 
   int8_t fscal0_min = 127;
   int8_t fscal0_max = -127;
@@ -208,7 +156,7 @@ static void redpine_tune() {
       break;
     }
 
-    redpine_tune_freq(bind.freq_offset);
+    protocol_tune_freq(bind.freq_offset);
 
     timer_timeout_set_ms(50);
     done = 0;
@@ -249,11 +197,11 @@ static void redpine_tune() {
   int8_t fscal0_calc = (fscal0_max + fscal0_min) / 2;
   bind.freq_offset = fscal0_calc;
 
-  redpine_tune_freq(bind.freq_offset);
+  protocol_tune_freq(bind.freq_offset);
 }
 
 static void redpine_fetch_txid() {
-  redpine_enter_rxmode(0);
+  protocol_enter_rxmode(0);
 
   bind.txid[0] = 0;
   bind.txid[1] = 0;
@@ -317,21 +265,6 @@ static void redpine_fetch_txid() {
   radio_strobe(RFST_SIDLE);
 }
 
-static void redpine_calibrate() {
-  redpine_tune_freq(bind.freq_offset);
-
-  for (int i = 0; i < HOPTABLE_SIZE; i++) {
-    uint8_t ch = bind.hop_table[i];
-    redpine_tune_channel(ch);
-    fscal1_table[i] = radio_read_reg(FSCAL1);
-  }
-
-  fscal3 = radio_read_reg(FSCAL3);
-  fscal2 = radio_read_reg(FSCAL2);
-
-  radio_strobe(RFST_SIDLE);
-}
-
 static void redpine_bind() {
   debug_print("redpine_bind\r\n");
   bind.txid[0] = 0x03;
@@ -370,14 +303,14 @@ void redpine_init() {
     storage_write((uint8_t *)&bind, sizeof(bind_data));
   }
 
-  redpine_calibrate();
+  protocol_calibrate();
   delay_ms(100);
 }
 
 void redpine_main() {
   debug_print("redpine_main\r\n");
 
-  redpine_enter_rxmode(bind.hop_table[current_channel_index]);
+  protocol_enter_rxmode(bind.hop_table[current_channel_index]);
 
   timer_timeout_set_ms(500);
 
@@ -399,7 +332,7 @@ void redpine_main() {
         timer_timeout_set_100us(looptime);
       }
 
-      redpine_increment_channel(1);
+      protocol_increment_channel(1);
 
       radio_enable_rx();
       radio_strobe(RFST_SRX);
