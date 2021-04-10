@@ -17,12 +17,20 @@ void storage_read(uint8_t *buf, uint16_t len) {
 }
 
 void storage_write(uint8_t *buf, uint16_t len) {
-  if ((len & 0x1) == 0x1) {
-    len++;
+  __xdata uint8_t tmp_buf[128];
+  if (len > 128) {
+    return;
+  }
+
+  for (uint16_t i = 0; i < 128; i++) {
+    tmp_buf[i] = 0;
+  }
+  for (uint16_t i = 0; i < len; i++) {
+    tmp_buf[i] = buf[i];
   }
 
   flash_erase(FLASH_PAGE_OFFSET / FLASH_PAGE_SIZE);
-  flash_write(FLASH_PAGE_OFFSET, buf, len);
+  flash_write(FLASH_PAGE_OFFSET, tmp_buf, 128);
 
   dma_init();
   radio_init();
