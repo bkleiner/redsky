@@ -394,6 +394,8 @@ void redpine_main() {
         missing++;
         led_red_on();
         led_green_off();
+      } else {
+        redpine_send_update(0);
       }
       packet_received = 0;
 
@@ -431,7 +433,6 @@ void redpine_main() {
     led_green_on();
 
     looptime = packet[CHANNEL_START + 7];
-    redpine_send_update(0);
     timer_timeout_set_100us(0);
 
     packet[REDPINE_PACKET_SIZE_W_ADDONS - 1] = 0;
