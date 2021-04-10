@@ -16,3 +16,8 @@ env.AddBuildMiddleware(
   replace_system,
   "*/framework-cmsis*/*"
 )
+
+env.Append(
+  CFLAGS=["--model-small"],
+  LINKFLAGS=["--model-small", "--opt-code-speed", "--xram-loc", "0xf000", "--code-loc", "0x0"]
+)
