@@ -95,13 +95,16 @@ void uart_dma_print(const char *str) {
 
 #ifdef DEBUG_OUTPUT
 void uart_dma_printf(char *fmt, ...) {
-  while (uart_update(UART_TX_BUF_SIZE) == 0)
+  while (uart_dma_transfer_done == 0)
     ;
 
   va_list va;
   va_start(va, fmt);
   uint16_t len = debug_vsnprintf(uart_tx_buf, UART_TX_BUF_SIZE, fmt, va);
   va_end(va);
+
+  while (uart_update(len) == 0)
+    ;
 
   uart_flush();
 }
