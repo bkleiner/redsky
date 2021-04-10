@@ -4,9 +4,6 @@
 #include "driver.h"
 #include "radio.h"
 
-#include "frsky.h"
-#include "redpine.h"
-
 EXT_MEMORY uint8_t current_channel_index = 0;
 
 EXT_MEMORY uint8_t fscal1_table[HOPTABLE_SIZE];
@@ -96,7 +93,7 @@ void protocol_set_address() {
   radio_write_reg(ADDR, bind.txid[0]);
 
   // ADR_CHK, APPEND_STATUS, CRC_AUTOFLUSH
-  radio_write_reg(PKTCTRL1, 0x0D);
+  radio_write_reg(PKTCTRL1, 0x05);
 
   delay_ms(1);
 }
