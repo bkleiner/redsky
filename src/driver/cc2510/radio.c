@@ -137,8 +137,8 @@ void radio_isr(void) __interrupt(RF_VECTOR) {
   RFIF &= ~(1 << 4);
   S1CON &= ~0x03;
 
-  radio_enable_rx();
   received_packet = 1;
+  radio_enable_rx();
 }
 
 void radio_handle_overflows() {
