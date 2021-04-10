@@ -14,8 +14,9 @@
 #include "util.h"
 
 #define DEFAULT_PACKET_TIME 90
+#define TELEMETRY_TIME 20
 #define LOST_PACKET_TIME 5000
-#define PACKET_JITTER_TIME 5
+#define PACKET_JITTER_TIME 20
 
 #define MAX_BIND_PACKET_COUNT 10
 #define HOPDATA_RECEIVE_DONE ((1 << (MAX_BIND_PACKET_COUNT)) - 1)
@@ -75,15 +76,15 @@ static void frsky_configure() {
   radio_write_reg(FOCCFG, 0x16);
   radio_write_reg(BSCFG, 0x6C);
 
-  radio_write_reg(AGCCTRL2, 0x03);
-  radio_write_reg(AGCCTRL1, 0x40);
-  radio_write_reg(AGCCTRL0, 0x91);
+  radio_write_reg(AGCCTRL2, 0b01000011);
+  radio_write_reg(AGCCTRL1, 0b01000000);
+  radio_write_reg(AGCCTRL0, 0b10010001);
 
   radio_write_reg(FREND1, 0x56);
   radio_write_reg(FREND0, 0x10);
 
   radio_write_reg(FSCAL3, 0xA9);
-  radio_write_reg(FSCAL2, 0x05);
+  radio_write_reg(FSCAL2, 0x0A);
   radio_write_reg(FSCAL1, 0x00);
   radio_write_reg(FSCAL0, 0x11);
 
@@ -268,9 +269,9 @@ static void frsky_send_update(uint8_t packet_lost) {
   // drop size, lqi & rssi from packet
   //uart_dma_start((uint8_t *)packet, FRSKY_PACKET_SIZE);
   if (!packet_lost) {
-    debug_printf("packet %d\r\n", packet[3]);
+    uart_dma_print("P");
   } else {
-    debug_print("packet lost\r\n");
+    uart_dma_print("L");
   }
 }
 
@@ -340,7 +341,7 @@ void frsky_main() {
         timer_timeout_set_100us(LOST_PACKET_TIME);
       } else if (telemetry_start) {
         // we already waited 2ms down below
-        timer_timeout_set_100us(DEFAULT_PACKET_TIME - 20 + PACKET_JITTER_TIME);
+        timer_timeout_set_100us(DEFAULT_PACKET_TIME - TELEMETRY_TIME);
       } else if (packet_received) {
         // we got a packet, a litte bit of jitter
         timer_timeout_set_100us(DEFAULT_PACKET_TIME + PACKET_JITTER_TIME);
@@ -348,15 +349,24 @@ void frsky_main() {
         timer_timeout_set_100us(DEFAULT_PACKET_TIME);
       }
 
+      protocol_increment_channel(1);
+
       if (telemetry_sending) {
         telemetry_sending = 0;
       }
 
-      protocol_increment_channel(1);
-
       if (telemetry_start) {
 #ifdef USE_TELEMETRY
         frsky_send_telemetry(telemetry_id);
+#else
+        radio_strobe(RFST_SIDLE);
+        while (radio_read_reg(MARCSTATE) != 0x01)
+          ;
+
+        radio_reset_packet();
+        radio_enable_rx();
+
+        radio_strobe(RFST_SRX);
 #endif
         telemetry_start = 0;
         telemetry_sending = 1;
@@ -376,9 +386,10 @@ void frsky_main() {
       if (missing >= 5 && (missing % 5) == 0) {
         radio_switch_antenna();
       }
-      if (missing >= 100) {
+      if (missing >= 50) {
         conn_lost = 1;
       }
+      /*
       if (missing >= 250) {
         radio_strobe(RFST_SIDLE);
         //radio_init();
@@ -387,6 +398,7 @@ void frsky_main() {
         missing = 50;
         continue;
       }
+      */
 
       radio_handle_overflows();
     }
@@ -421,7 +433,7 @@ void frsky_main() {
     frsky_send_update(0);
     if (telemetry_start) {
       // telemetry must be sent ~2ms after rx
-      timer_timeout_set_100us(20);
+      timer_timeout_set_100us(TELEMETRY_TIME);
     } else {
       timer_timeout_set_100us(0);
     }

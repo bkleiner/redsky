@@ -20,8 +20,10 @@ CFLAGS += -DFLASH_SIZE=$(FLASH_SIZE) \
 BOOTLOADER_SOURCES += src/bootloader/bootloader.c
 BLINKY_SOURCES += src/blinky/blinky.c
 APP_SOURCES += src/app/app.c \
-							 src/app/redpine.c \
-							 src/app/debug.c
+							 src/app/debug.c \
+							 src/app/protocol/frsky.c \
+							 src/app/protocol/protocol.c \
+							 src/app/protocol/redpine.c
 
 DRIVER_CORE_OBJECTS=$(addsuffix .$(OBJECT_EXT),$(addprefix $(BUILD_DIR)/,$(basename $(DRIVER_CORE_SOURCES))))
 DRIVER_OBJECTS=$(addsuffix .$(OBJECT_EXT),$(addprefix $(BUILD_DIR)/,$(basename $(DRIVER_SOURCES))))
