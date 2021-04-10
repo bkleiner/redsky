@@ -3,6 +3,7 @@
 #include "debug.h"
 #include "delay.h"
 #include "dma.h"
+#include "led.h"
 
 #include "protocol/protocol.h"
 
@@ -51,6 +52,11 @@ static void set_antenna(uint8_t index) {
 
 void radio_init() {
   debug_print("radio_init\r\n");
+
+#ifdef BUTTON_PORT
+  PORT2DIR(BUTTON_PORT) &= ~(1 << BUTTON_PIN);
+  PORT2INP(BUTTON_PORT) &= ~(1 << BUTTON_PIN);
+#endif
 
 #ifdef RF_LNA_PORT
   PORT2DIR(RF_LNA_PORT) |= (1 << RF_LNA_PIN);
@@ -113,6 +119,20 @@ void radio_switch_antenna() {
   set_antenna(USE_FIXED_ANTENNA);
 #else
   set_antenna(current_antenna == 0 ? 1 : 0);
+#endif
+}
+
+uint8_t radio_bind_active() {
+#ifdef BUTTON_PORT
+  for (int i = 0; i < 200; i++) {
+    if (BUTTON_PORT & (1 << BUTTON_PIN)) {
+      return 0;
+    }
+    delay_ms(1);
+  }
+  return 1;
+#else
+  return 0;
 #endif
 }
 

@@ -4,6 +4,8 @@
 #define LED_RED_PIN PF0
 #define LED_RED_INVERT
 
+#define BUTTON_PIN PA5
+
 #define UART_TX PA9
 #define UART_RX PA10
 

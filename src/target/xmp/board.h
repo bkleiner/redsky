@@ -9,6 +9,9 @@
 #define LED_RED_PORT P1
 #define LED_RED_PIN 2
 
+#define BUTTON_PORT P0
+#define BUTTON_PIN 5
+
 #define USE_LNA
 #define RF_LNA_PORT P2
 #define RF_LNA_PIN 4

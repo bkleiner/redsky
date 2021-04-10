@@ -9,4 +9,7 @@
 #define LED_RED_PORT P1
 #define LED_RED_PIN 2
 
+#define BUTTON_PORT P0
+#define BUTTON_PIN 5
+
 #endif

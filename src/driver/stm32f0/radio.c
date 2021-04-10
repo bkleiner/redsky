@@ -47,6 +47,8 @@ void radio_init() {
   gpio_config(RF_SWANT_PIN, GPIO_OUTPUT | GPIO_PP);
   set_antenna(0);
 
+  gpio_config(BUTTON_PIN, GPIO_INPUT | GPIO_OD | GPIO_PULL_UP);
+
   gpio_config(CC2500_GDO0_PIN, GPIO_INPUT | GPIO_OD);
   MODIFY_REG(SYSCFG->EXTICR[0], SYSCFG_EXTICR1_EXTI1, SYSCFG_EXTICR1_EXTI1_PB);
   SET_BIT(EXTI->IMR, EXTI_IMR_MR1);
@@ -277,6 +279,20 @@ void radio_enable_rx() {
 void radio_enter_tx() {
   gpio_reset(RF_LNA_PIN);
   gpio_set(RF_PA_PIN);
+}
+
+uint8_t radio_bind_active() {
+#ifdef BUTTON_PIN
+  for (int i = 0; i < 200; i++) {
+    if (gpio_read(BUTTON_PIN)) {
+      return 0;
+    }
+    delay_ms(1);
+  }
+  return 1;
+#else
+  return 0;
+#endif
 }
 
 uint8_t radio_transmit(uint8_t *buf, uint32_t len) {

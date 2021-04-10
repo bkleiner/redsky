@@ -101,6 +101,8 @@ void radio_strobe(uint8_t val);
 void radio_init();
 void radio_io_config();
 
+uint8_t radio_bind_active();
+
 void radio_enable_rx();
 void radio_enter_tx();
 

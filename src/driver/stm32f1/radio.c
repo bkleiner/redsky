@@ -246,6 +246,10 @@ void radio_reset_packet() {
   received_packet = 0;
 }
 
+uint8_t radio_bind_active() {
+  return 0;
+}
+
 void radio_switch_antenna() {
 #ifdef USE_FIXED_ANTENNA
   set_antenna(USE_FIXED_ANTENNA);

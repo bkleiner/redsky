@@ -337,7 +337,9 @@ void frsky_init() {
 
   frsky_configure();
 
-  storage_read((uint8_t *)&bind, sizeof(bind_data));
+  if (!radio_bind_active()) {
+    storage_read((uint8_t *)&bind, sizeof(bind_data));
+  }
   if ((bind.txid[0] == 0x0 && bind.txid[1] == 0x0) ||
       (bind.txid[0] == 0xFF && bind.txid[1] == 0xFF)) {
     frsky_bind();
