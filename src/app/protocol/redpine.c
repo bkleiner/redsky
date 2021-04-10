@@ -1,5 +1,7 @@
 #include "redpine.h"
 
+#include <string.h>
+
 #include "crc.h"
 #include "debug.h"
 #include "delay.h"
@@ -24,6 +26,8 @@
 
 #define REDPINE_VALID_TXID(_b) ((_b[1] == bind.txid[0]) && (_b[2] == bind.txid[1]))
 #define REDPINE_VALID_PACKET(_b) ((_b[0] == 10) && REDPINE_VALID_TXID(_b) && REDPINE_VALID_PACKET_CRC(_b))
+
+#define REDPINE_SCALE_TO_SBUS(v) (((107 * (uint32_t)(v)) - 10618) / 100)
 
 typedef enum {
   TUNE_INIT,
@@ -274,6 +278,7 @@ static void redpine_bind() {
   redpine_fetch_txid();
 }
 
+#ifdef SERIAL_REDPINE
 static void redpine_send_update(uint8_t packet_lost) {
   // set magic
   packet[0] = 0x2A;
@@ -290,6 +295,51 @@ static void redpine_send_update(uint8_t packet_lost) {
   // drop size, lqi & rssi from packet
   uart_dma_start((uint8_t *)packet, REDPINE_PACKET_SIZE);
 }
+#endif
+
+#ifdef SERIAL_SBUS
+static void redpine_send_update(uint8_t packet_lost) {
+
+  static EXT_MEMORY uint16_t channel_data[8];
+
+  channel_data[0] = REDPINE_SCALE_TO_SBUS(((uint16_t)(packet[CHANNEL_START + 1] << 8) & 0x700) | packet[CHANNEL_START]);
+  channel_data[1] = REDPINE_SCALE_TO_SBUS(((uint16_t)(packet[CHANNEL_START + 2] << 4) & 0x7F0) | ((packet[CHANNEL_START + 1] >> 4) & 0xF));
+  channel_data[2] = REDPINE_SCALE_TO_SBUS(((uint16_t)(packet[CHANNEL_START + 4] << 8) & 0x700) | packet[CHANNEL_START + 3]);
+  channel_data[3] = REDPINE_SCALE_TO_SBUS(((uint16_t)(packet[CHANNEL_START + 5] << 4) & 0x7F0) | ((packet[CHANNEL_START + 4] >> 4) & 0xF));
+  channel_data[4] = (packet[CHANNEL_START + 1] & 0x08) ? 1792 : 192;
+  channel_data[5] = (packet[CHANNEL_START + 2] & 0x80) ? 1792 : 192;
+  channel_data[6] = (packet[CHANNEL_START + 4] & 0x08) ? 1792 : 192;
+  channel_data[7] = (packet[CHANNEL_START + 5] & 0x80) ? 1792 : 192;
+
+  static EXT_MEMORY uint8_t sbus_data[SBUS_SIZE];
+
+  memset(sbus_data, 0, SBUS_SIZE);
+
+  sbus_data[0] = SBUS_SYNC;
+
+  sbus_data[1] = channel_data[0];
+  sbus_data[2] = (channel_data[1] << 3) | channel_data[0] >> 8;
+  sbus_data[3] = (channel_data[1] >> 5) | (channel_data[2] << 6);
+  sbus_data[4] = (channel_data[2] >> 2) & 0xFF;
+  sbus_data[5] = (channel_data[2] >> 10) | (channel_data[3] << 1);
+  sbus_data[6] = (channel_data[3] >> 7) | (channel_data[4] << 4);
+  sbus_data[7] = (channel_data[4] >> 4) | (channel_data[5] << 7);
+  sbus_data[8] = (channel_data[5] >> 1) & 0xFF;
+  sbus_data[9] = (channel_data[5] >> 9) | (channel_data[6] << 2);
+  sbus_data[10] = (channel_data[6] >> 6) | (channel_data[7] << 5);
+  sbus_data[11] = (channel_data[7] >> 3) & 0xFF;
+
+  sbus_data[23] = 0;
+
+  if (packet_lost) {
+    sbus_data[23] |= SBUS_FLAG_FRAME_LOST;
+  }
+
+  sbus_data[24] = 0;
+
+  uart_dma_start(sbus_data, SBUS_SIZE);
+}
+#endif
 
 void redpine_init() {
   debug_print("redpine_init\r\n");
@@ -381,6 +431,8 @@ void redpine_main() {
     looptime = packet[CHANNEL_START + 7];
     redpine_send_update(0);
     timer_timeout_set_100us(0);
+
+    packet[REDPINE_PACKET_SIZE_W_ADDONS - 1] = 0;
 
     missing = 0;
     packet_received = 1;

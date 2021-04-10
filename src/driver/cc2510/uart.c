@@ -10,6 +10,9 @@
 #define BAUD_M_230400 34
 #define BAUD_E_230400 13
 
+#define BAUD_M_200000 248
+#define BAUD_E_200000 12
+
 #define UxGCR_ORDER (1 << 5)
 
 typedef union {
@@ -50,10 +53,25 @@ void uart_init() {
   //U0BAUD = BAUD_M_115200;
   //U0GCR = (U0GCR & ~0x1F) | (BAUD_E_115200);
 
+  uart_config_t config;
+
+#ifdef SERIAL_SBUS
+  U0BAUD = BAUD_M_200000;
+  U0GCR = (U0GCR & ~0x1F) | (BAUD_E_200000);
+
+  config.START = 0;
+  config.STOP = 1;
+  config.SPB = 1;
+  config.PARITY = 1;
+  config.BIT9 = 1;
+  config.D9 = 0;
+  config.FLOW = 0;
+  config.ORDER = 0;
+#endif
+
+#ifdef SERIAL_REDPINE
   U0BAUD = BAUD_M_230400;
   U0GCR = (U0GCR & ~0x1F) | (BAUD_E_230400);
-
-  uart_config_t config;
 
   config.START = 0;
   config.STOP = 1;
@@ -63,6 +81,7 @@ void uart_init() {
   config.D9 = 0;
   config.FLOW = 0;
   config.ORDER = 0;
+#endif
 
   U0CSR |= UxCSR_MODE_ENABLE;
   U0UCR = config.raw & (0x7F);
