@@ -13,6 +13,8 @@
 #include "timer.h"
 #include "util.h"
 
+#ifdef PROTOCOL_FRSKY
+
 #define DEFAULT_PACKET_TIME 90
 #define TELEMETRY_TIME 20
 #define LOST_PACKET_TIME 5000
@@ -476,3 +478,4 @@ void frsky_main() {
     conn_lost = 0;
   }
 }
+#endif

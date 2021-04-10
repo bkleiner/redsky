@@ -13,10 +13,10 @@
 #include "timer.h"
 #include "util.h"
 
+#ifdef PROTOCOL_REDPINE
+
 #define MAX_BIND_PACKET_COUNT 10
-
 #define DEFAULT_PACKET_TIME_US 50000
-
 #define CHANNEL_START 3
 
 #define HOPDATA_RECEIVE_DONE ((1 << (MAX_BIND_PACKET_COUNT)) - 1)
@@ -441,3 +441,4 @@ void redpine_main() {
     conn_lost = 0;
   }
 }
+#endif
