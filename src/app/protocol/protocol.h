@@ -29,7 +29,7 @@ typedef struct {
   uint8_t txid[2];
   uint8_t hop_table[MAX_HOPTABLE_SIZE];
   int8_t freq_offset;
-} bind_data;
+} bind_data_t;
 
 void protocol_init();
 void protocol_main();
@@ -41,5 +41,7 @@ void protocol_set_channel(uint8_t hop_index);
 void protocol_increment_channel(int8_t cnt);
 void protocol_calibrate();
 void protocol_set_address();
+
+void protocol_send_sbus(uint16_t *channel, uint8_t packet_lost, uint8_t failsafe);
 
 #endif

@@ -45,7 +45,18 @@ extern EXT_MEMORY uint8_t fscal1_table[HOPTABLE_SIZE];
 extern EXT_MEMORY uint8_t fscal2;
 extern EXT_MEMORY uint8_t fscal3;
 
-extern bind_data EXT_MEMORY bind;
+static EXT_MEMORY uint8_t rssi = 0;
+static EXT_MEMORY uint8_t lqi = 0;
+
+extern EXT_MEMORY bind_data_t bind;
+
+static uint8_t frsky_convert_rssi(uint8_t raw) {
+  if (raw >= 128) {
+    return ((((uint16_t)raw) * 18) >> 5) - 82;
+  } else {
+    return ((((uint16_t)raw) * 18) >> 5) + 65;
+  }
+}
 
 static void frsky_configure() {
   debug_print("frsky_configure\r\n");
@@ -266,9 +277,9 @@ static void frsky_bind() {
   frsky_fetch_txid();
 }
 
-static void frsky_send_update(uint8_t packet_lost) {
+static void frsky_send_update(uint8_t packet_lost, uint8_t failsafe) {
 
-  static EXT_MEMORY uint16_t channel_data[8];
+  static EXT_MEMORY uint16_t channel_data[16];
 
   channel_data[0] = (uint16_t)((packet[10] & 0x0F) << 8 | packet[6]) - 1260;
   channel_data[1] = (uint16_t)((packet[10] & 0xF0) << 4 | packet[7]) - 1260;
@@ -278,34 +289,16 @@ static void frsky_send_update(uint8_t packet_lost) {
   channel_data[5] = (uint16_t)((packet[16] & 0xF0) << 4 | packet[13]) - 1260;
   channel_data[6] = (uint16_t)((packet[17] & 0x0F) << 8 | packet[14]) - 1260;
   channel_data[7] = (uint16_t)((packet[17] & 0xF0) << 4 | packet[15]) - 1260;
+  channel_data[8] = 0;
+  channel_data[9] = 0;
+  channel_data[10] = 0;
+  channel_data[11] = 0;
+  channel_data[12] = 0;
+  channel_data[13] = 0;
+  channel_data[14] = 0;
+  channel_data[15] = min(frsky_convert_rssi(rssi) * 21, 2047);
 
-  static EXT_MEMORY uint8_t sbus_data[SBUS_SIZE];
-
-  memset(sbus_data, 0, SBUS_SIZE);
-
-  sbus_data[0] = SBUS_SYNC;
-
-  sbus_data[1] = channel_data[0];
-  sbus_data[2] = (channel_data[1] << 3) | channel_data[0] >> 8;
-  sbus_data[3] = (channel_data[1] >> 5) | (channel_data[2] << 6);
-  sbus_data[4] = (channel_data[2] >> 2) & 0xFF;
-  sbus_data[5] = (channel_data[2] >> 10) | (channel_data[3] << 1);
-  sbus_data[6] = (channel_data[3] >> 7) | (channel_data[4] << 4);
-  sbus_data[7] = (channel_data[4] >> 4) | (channel_data[5] << 7);
-  sbus_data[8] = (channel_data[5] >> 1) & 0xFF;
-  sbus_data[9] = (channel_data[5] >> 9) | (channel_data[6] << 2);
-  sbus_data[10] = (channel_data[6] >> 6) | (channel_data[7] << 5);
-  sbus_data[11] = (channel_data[7] >> 3) & 0xFF;
-
-  sbus_data[23] = 0;
-
-  if (packet_lost) {
-    sbus_data[23] |= SBUS_FLAG_FRAME_LOST;
-  }
-
-  sbus_data[24] = 0;
-
-  uart_dma_start(sbus_data, SBUS_SIZE);
+  protocol_send_sbus(channel_data, packet_lost, failsafe);
 }
 
 #ifdef USE_TELEMETRY
@@ -319,9 +312,9 @@ static void frsky_send_telemetry(uint8_t id) {
   packet[0] = 0x11; // length of byte (always 0x11 = 17 bytes)
   packet[1] = bind.txid[0];
   packet[2] = bind.txid[1];
-  packet[3] = 0;   // ADC channels
-  packet[4] = 0;   // ADC channels
-  packet[5] = 100; // RSSI
+  packet[3] = 0;                        // ADC channels
+  packet[4] = 0;                        // ADC channels
+  packet[5] = frsky_convert_rssi(rssi); // RSSI
 
   // no hub telemetry for now
   packet[6] = 0; // size
@@ -340,12 +333,12 @@ void frsky_init() {
   frsky_configure();
 
   if (!radio_bind_active()) {
-    storage_read((uint8_t *)&bind, sizeof(bind_data));
+    storage_read((uint8_t *)&bind, sizeof(bind_data_t));
   }
   if ((bind.txid[0] == 0x0 && bind.txid[1] == 0x0) ||
       (bind.txid[0] == 0xFF && bind.txid[1] == 0xFF)) {
     frsky_bind();
-    storage_write((uint8_t *)&bind, sizeof(bind_data));
+    storage_write((uint8_t *)&bind, sizeof(bind_data_t));
   }
 
   protocol_set_address();
@@ -387,7 +380,7 @@ void frsky_main() {
       protocol_increment_channel(1);
 
       if (telemetry_sending) {
-        frsky_send_update(0);
+        frsky_send_update(0, 0);
         telemetry_sending = 0;
       }
 
@@ -409,10 +402,12 @@ void frsky_main() {
       }
 
       if (!packet_received) {
-        frsky_send_update(1);
+        frsky_send_update(1, conn_lost);
         missing++;
         led_red_on();
         led_green_off();
+      } else {
+        frsky_send_update(0, 0);
       }
       packet_received = 0;
 
@@ -463,7 +458,9 @@ void frsky_main() {
 
     led_green_on();
 
-    frsky_send_update(0);
+    rssi = packet[FRSKY_PACKET_SIZE + 1];
+    lqi = packet[FRSKY_PACKET_SIZE + 2] & 0x7f;
+
     if (telemetry_start) {
       // telemetry must be sent ~2ms after rx
       timer_timeout_set_100us(TELEMETRY_TIME);

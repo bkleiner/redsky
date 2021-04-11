@@ -29,6 +29,8 @@
 
 #define REDPINE_SCALE_TO_SBUS(v) (((107 * (uint32_t)(v)) - 10618) / 100)
 
+#define REDPINE_SCALE_LQI(lqi) (100 - (lqi < 30 ? 0 : lqi - 30))
+
 typedef enum {
   TUNE_INIT,
   TUNE_FAST_SEARCH,
@@ -44,7 +46,10 @@ extern EXT_MEMORY uint8_t fscal1_table[HOPTABLE_SIZE];
 extern EXT_MEMORY uint8_t fscal2;
 extern EXT_MEMORY uint8_t fscal3;
 
-extern bind_data EXT_MEMORY bind;
+static EXT_MEMORY uint8_t rssi = 0;
+static EXT_MEMORY uint8_t lqi = 0;
+
+extern EXT_MEMORY bind_data_t bind;
 
 static void redpine_configure() {
   debug_print("redpine_configure\r\n");
@@ -279,28 +284,32 @@ static void redpine_bind() {
 }
 
 #ifdef SERIAL_REDPINE
-static void redpine_send_update(uint8_t packet_lost) {
+static void redpine_send_update(uint8_t packet_lost, uint8_t failsafe) {
+
+  static EXT_MEMORY uint8_t redpine_data[REDPINE_PACKET_SIZE];
+  memcpy(redpine_data, packet, REDPINE_PACKET_SIZE);
+
   // set magic
-  packet[0] = 0x2A;
+  redpine_data[0] = 0x2A;
   if (packet_lost == 1) {
-    packet[0] |= 0b01000000;
+    redpine_data[0] |= 0b01000000;
   }
 
-  // move rssi up
-  packet[CHANNEL_START + 7] = packet[REDPINE_PACKET_SIZE + 1] & 0x7f;
+  // set lqi 0...100
+  redpine_data[CHANNEL_START + 7] = REDPINE_SCALE_LQI(lqi);
 
-  uint16_t crc = crc_compute((uint8_t *)packet, REDPINE_PACKET_SIZE);
-  WRITE_WORD(packet[1], packet[2], crc);
+  uint16_t crc = crc_compute((uint8_t *)redpine_data, REDPINE_PACKET_SIZE);
+  WRITE_WORD(redpine_data[1], redpine_data[2], crc);
 
   // drop size, lqi & rssi from packet
-  uart_dma_start((uint8_t *)packet, REDPINE_PACKET_SIZE);
+  uart_dma_start((uint8_t *)redpine_data, REDPINE_PACKET_SIZE);
 }
 #endif
 
 #ifdef SERIAL_SBUS
-static void redpine_send_update(uint8_t packet_lost) {
+static void redpine_send_update(uint8_t packet_lost, uint8_t failsafe) {
 
-  static EXT_MEMORY uint16_t channel_data[8];
+  static EXT_MEMORY uint16_t channel_data[16];
 
   channel_data[0] = REDPINE_SCALE_TO_SBUS(((uint16_t)(packet[CHANNEL_START + 1] << 8) & 0x700) | packet[CHANNEL_START]);
   channel_data[1] = REDPINE_SCALE_TO_SBUS(((uint16_t)(packet[CHANNEL_START + 2] << 4) & 0x7F0) | ((packet[CHANNEL_START + 1] >> 4) & 0xF));
@@ -310,34 +319,16 @@ static void redpine_send_update(uint8_t packet_lost) {
   channel_data[5] = (packet[CHANNEL_START + 2] & 0x80) ? 1792 : 192;
   channel_data[6] = (packet[CHANNEL_START + 4] & 0x08) ? 1792 : 192;
   channel_data[7] = (packet[CHANNEL_START + 5] & 0x80) ? 1792 : 192;
+  channel_data[8] = 0;
+  channel_data[9] = 0;
+  channel_data[10] = 0;
+  channel_data[11] = 0;
+  channel_data[12] = 0;
+  channel_data[13] = 0;
+  channel_data[14] = 0;
+  channel_data[15] = min(REDPINE_SCALE_LQI(lqi) * 21, 2047);
 
-  static EXT_MEMORY uint8_t sbus_data[SBUS_SIZE];
-
-  memset(sbus_data, 0, SBUS_SIZE);
-
-  sbus_data[0] = SBUS_SYNC;
-
-  sbus_data[1] = channel_data[0];
-  sbus_data[2] = (channel_data[1] << 3) | channel_data[0] >> 8;
-  sbus_data[3] = (channel_data[1] >> 5) | (channel_data[2] << 6);
-  sbus_data[4] = (channel_data[2] >> 2) & 0xFF;
-  sbus_data[5] = (channel_data[2] >> 10) | (channel_data[3] << 1);
-  sbus_data[6] = (channel_data[3] >> 7) | (channel_data[4] << 4);
-  sbus_data[7] = (channel_data[4] >> 4) | (channel_data[5] << 7);
-  sbus_data[8] = (channel_data[5] >> 1) & 0xFF;
-  sbus_data[9] = (channel_data[5] >> 9) | (channel_data[6] << 2);
-  sbus_data[10] = (channel_data[6] >> 6) | (channel_data[7] << 5);
-  sbus_data[11] = (channel_data[7] >> 3) & 0xFF;
-
-  sbus_data[23] = 0;
-
-  if (packet_lost) {
-    sbus_data[23] |= SBUS_FLAG_FRAME_LOST;
-  }
-
-  sbus_data[24] = 0;
-
-  uart_dma_start(sbus_data, SBUS_SIZE);
+  protocol_send_sbus(channel_data, packet_lost, failsafe);
 }
 #endif
 
@@ -347,12 +338,12 @@ void redpine_init() {
   redpine_configure();
 
   if (!radio_bind_active()) {
-    storage_read((uint8_t *)&bind, sizeof(bind_data));
+    storage_read((uint8_t *)&bind, sizeof(bind_data_t));
   }
   if ((bind.txid[0] == 0x0 && bind.txid[1] == 0x0) ||
       (bind.txid[0] == 0xFF && bind.txid[1] == 0xFF)) {
     redpine_bind();
-    storage_write((uint8_t *)&bind, sizeof(bind_data));
+    storage_write((uint8_t *)&bind, sizeof(bind_data_t));
   }
 
   protocol_calibrate();
@@ -390,12 +381,12 @@ void redpine_main() {
       radio_strobe(RFST_SRX);
 
       if (!packet_received) {
-        redpine_send_update(1);
+        redpine_send_update(1, conn_lost);
         missing++;
         led_red_on();
         led_green_off();
       } else {
-        redpine_send_update(0);
+        redpine_send_update(0, conn_lost);
       }
       packet_received = 0;
 
@@ -431,6 +422,20 @@ void redpine_main() {
     }
 
     led_green_on();
+
+    rssi = packet[REDPINE_PACKET_SIZE];
+
+    static EXT_MEMORY uint8_t lqi_avg[8];
+    static uint8_t lqi_index = 0;
+
+    lqi_avg[lqi_index] = packet[REDPINE_PACKET_SIZE + 1] & 0x7f;
+    lqi_index = (lqi_index + 1) % 8;
+
+    lqi = 0;
+    for (uint8_t i = 0; i < 8; i++) {
+      lqi += lqi_avg[i];
+    }
+    lqi /= 8;
 
     looptime = packet[CHANNEL_START + 7];
     timer_timeout_set_100us(0);

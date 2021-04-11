@@ -9,7 +9,7 @@
 // #define PROTOCOL_FRSKY
 #define PROTOCOL_REDPINE
 
-//#define SERIAL_REDPINE
+// #define SERIAL_REDPINE
 #define SERIAL_SBUS
 
 #endif
