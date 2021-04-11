@@ -17,7 +17,8 @@ env.AddBuildMiddleware(
   "*/framework-cmsis*/*"
 )
 
-env.Append(
-  CFLAGS=["--model-small"],
-  LINKFLAGS=["--model-small", "--opt-code-speed", "--xram-loc", "0xf000", "--code-loc", "0x0"]
-)
+if env["BOARD_MCU"] == "cc2510":
+  env.Append(
+    CFLAGS=["--model-small"],
+    LINKFLAGS=["--model-small", "--opt-code-speed", "--xram-loc", "0xf000", "--code-loc", "0x0"]
+  )
