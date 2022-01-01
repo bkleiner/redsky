@@ -5,3 +5,5 @@ An implementation of the Redpine rc protocol (by BryceJ) tailored to run on Frsk
 redsky is a super low latency radio control protocol with excellent signal robustness even in challenging environments.
 
 working in progess, not recommended for general usage (yet)
+
+Visit the [QUICKSILVER Discord](https://discord.gg/8StVhvB6Tm) for help and troubleshooting
