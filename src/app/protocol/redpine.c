@@ -319,13 +319,13 @@ static void redpine_send_update(uint8_t packet_lost, uint8_t failsafe) {
   channel_data[5] = (packet[CHANNEL_START + 2] & 0x80) ? 1792 : 192;
   channel_data[6] = (packet[CHANNEL_START + 4] & 0x08) ? 1792 : 192;
   channel_data[7] = (packet[CHANNEL_START + 5] & 0x80) ? 1792 : 192;
-  channel_data[8] = 0;
-  channel_data[9] = 0;
-  channel_data[10] = 0;
-  channel_data[11] = 0;
-  channel_data[12] = 0;
-  channel_data[13] = 0;
-  channel_data[14] = 0;
+  channel_data[8] = (packet[CHANNEL_START + 6] & 0x01) ? 1792 : 192;
+  channel_data[9] = (packet[CHANNEL_START + 6] & 0x02) ? 1792 : 192;
+  channel_data[10] = (packet[CHANNEL_START + 6] & 0x04) ? 1792 : 192;
+  channel_data[11] = (packet[CHANNEL_START + 6] & 0x08) ? 1792 : 192;
+  channel_data[12] = (packet[CHANNEL_START + 6] & 0x10) ? 1792 : 192;
+  channel_data[13] = (packet[CHANNEL_START + 6] & 0x20) ? 1792 : 192;
+  channel_data[14] = (packet[CHANNEL_START + 6] & 0x40) ? 1792 : 192;
   channel_data[15] = min(REDPINE_SCALE_LQI(lqi) * 21, 2047);
 
   protocol_send_sbus(channel_data, packet_lost, failsafe);
